@@ -17,3 +17,6 @@ build/
 # Temporary files & logs
 *.log
 scratch/
+
+# Exclude Web Dashboard UI
+web_dashboard/
