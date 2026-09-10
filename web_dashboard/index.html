@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Conveyor & Multi-Sensor Telemetry Hub</title>
+  <meta name="description" content="Real-time multi-sensor telemetry dashboard with Conveyor Belt Location Tracking, Speedometer, MPU-6050 3D Orientation, and Conveyor Frame Vibration Monitoring.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <h1>SMART CONVEYOR &amp; TELEMETRY HUB</h1>
+          <p class="subtitle">
+            <span class="tag">ESP32: MPU-6050 Frame Kinematics (COM19 &bull; 115200)</span>
+            <span class="tag tag-conveyor">Arduino Uno: Conveyor Belt &amp; Speedometer (COM23 &bull; 9600)</span>
+            <span class="tag tag-scale">ESP32: Scale &amp; IMU (COM21 &bull; 115200)</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="btn-toggle-sound" class="btn btn-outline" title="Toggle audio alert beeps on/off">
+          <span id="sound-icon">&#128276;</span>
+          <span id="sound-text">Sound: ON</span>
+        </button>
+
+        <button id="btn-thresholds-modal" class="btn btn-outline" title="Configure Alert Limits (>50g Load, Shock >1.45g)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span>Thresholds</span>
+        </button>
+
+        <button id="btn-demo" class="btn btn-outline" title="Toggle realistic conveyor motion & sensor simulation">
+          <span class="btn-dot"></span>
+          <span class="btn-text">Demo / Sim Mode</span>
+        </button>
+
+        <button id="btn-network-modal" class="btn btn-outline" title="Connect over Wi-Fi / WebSocket">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+          <span>Wi-Fi / WS</span>
+        </button>
+
+        <button id="btn-export-csv" class="btn btn-primary" title="Export session data as CSV">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Export CSV</span>
+        </button>
+
+        <button id="btn-clear-data" class="btn btn-secondary" title="Reset charts and counters">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          <span>Reset</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Real-Time Alarm & Alert Banner -->
+    <div id="global-alert-strip" class="global-alert-strip hidden" style="display: none;">
+      <div class="alert-content">
+        <div class="alert-icon-pulsing" id="global-alert-icon">&#9888;</div>
+        <div class="alert-texts">
+          <strong id="global-alert-title" class="alert-title">SYSTEM ALARM</strong>
+          <span id="global-alert-msg" class="alert-msg">High load or disturbance detected.</span>
+        </div>
+      </div>
+      <div class="alert-actions">
+        <span id="global-alert-time" class="alert-timestamp font-mono">--:--:--</span>
+        <button id="global-alert-dismiss" class="btn-micro alert-dismiss-btn" title="Dismiss Alert">&times;</button>
+      </div>
+    </div>
+
+    <!-- Main Dual-Board Grid -->
+    <main class="dashboard-grid">
+
+      <!-- ================= NODE 1: ESP32 (MPU-6050 + LOAD CELL - COM19) ================= -->
+      <section class="board-column board-1-theme" id="board-1-container">
+        <!-- Board Header Card -->
+        <div class="card board-header-card">
+          <div class="card-header-top">
+            <div class="board-title-group">
+              <span class="board-badge badge-board-1">NODE 01</span>
+              <h2>ESP32 &bull; Frame Motion &amp; Vibration <span class="com-tag">(COM19)</span></h2>
+            </div>
+            <div class="status-indicator">
+              <span class="status-dot" id="b1-status-dot"></span>
+              <span class="status-label" id="b1-status-text">Disconnected</span>
+            </div>
+          </div>
+
+          <div class="port-connection-bar">
+            <div class="port-btn-group">
+              <button id="b1-btn-connect" class="btn btn-action-b1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>Connect COM19 (ESP32)</span>
+              </button>
+              <select id="b1-baud" class="baud-select font-mono" title="Select Baud Rate">
+                <option value="115200" selected>115200</option>
+                <option value="9600">9600</option>
+                <option value="57600">57600</option>
+                <option value="38400">38400</option>
+              </select>
+            </div>
+            <div class="stream-stats">
+              <div class="stat-pill"><span class="pill-label">Rate</span><span class="pill-val" id="b1-rate">0 Hz</span></div>
+              <div class="stat-pill"><span class="pill-label">Packets</span><span class="pill-val" id="b1-packets">0</span></div>
+            </div>
+          </div>
+
+          <div id="b1-alert-banner" class="sensor-alert-banner hidden"></div>
+        </div>
+
+        <!-- 3D Orientation & Attitude Card (Frame Vibration & Tilt) -->
+        <div class="card card-visualizer" id="b1-card-visualizer">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon cyan-glow">&#9671;</span>
+              <h3>MPU-6050 &bull; Frame 3D Attitude &amp; Tilt</h3>
+            </div>
+            <div class="control-actions">
+              <span id="b1-shock-alarm-badge" class="alarm-pill alarm-pill-amber hidden" style="display: none;">&#9888; DISTURBANCE</span>
+              <span class="pin-tag font-mono">I2C: SDA 21 | SCL 22</span>
+              <button id="b1-btn-tare" class="btn-micro" title="Tare (Zero Orientation Offset)">Tare IMU</button>
+              <button id="b1-btn-reset-view" class="btn-micro" title="Reset 3D camera">Reset View</button>
+            </div>
+          </div>
+
+          <div class="visualizer-container">
+            <canvas id="b1-canvas-3d" class="canvas-3d" width="460" height="220"></canvas>
+            
+            <div class="attitude-gauge-overlay">
+              <div class="gauge-ring" id="b1-attitude-ring">
+                <div class="horizon-sky"></div>
+                <div class="horizon-ground"></div>
+                <div class="horizon-line" id="b1-horizon-line"></div>
+                <div class="pitch-ladder" id="b1-pitch-ladder">
+                  <div class="ladder-mark mark-p20">+20&deg;</div>
+                  <div class="ladder-mark mark-p10">+10&deg;</div>
+                  <div class="ladder-mark mark-0">&mdash; 0 &mdash;</div>
+                  <div class="ladder-mark mark-m10">-10&deg;</div>
+                  <div class="ladder-mark mark-m20">-20&deg;</div>
+                </div>
+                <div class="reticle">
+                  <div class="reticle-dot"></div>
+                  <div class="reticle-wing left"></div>
+                  <div class="reticle-wing right"></div>
+                </div>
+              </div>
+              <div class="gauge-label">ATTITUDE</div>
+            </div>
+
+            <div class="axes-legend">
+              <span class="axis-pill x-axis">X (Roll)</span>
+              <span class="axis-pill y-axis">Y (Pitch)</span>
+              <span class="axis-pill z-axis">Z (Yaw)</span>
+            </div>
+          </div>
+
+          <div class="angle-metrics-grid">
+            <div class="metric-cell">
+              <span class="metric-name">PITCH</span>
+              <span class="metric-value font-mono" id="b1-val-pitch">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">ROLL</span>
+              <span class="metric-value font-mono" id="b1-val-roll">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">YAW</span>
+              <span class="metric-value font-mono" id="b1-val-yaw">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">TEMP</span>
+              <span class="metric-value font-mono highlight-cyan" id="b1-val-temp">-- &deg;C</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conveyor Frame Vibration & Linear Acceleration -->
+        <div class="card card-telemetry" id="b1-card-vibration">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon cyan-glow">&#9679;</span>
+              <h3>Conveyor Frame Vibration &amp; Linear Acceleration (g)</h3>
+            </div>
+            <div class="badge-tag" id="b1-gtotal">G-Total: 1.00g (Smooth)</div>
+          </div>
+          <div class="sensor-readout-grid">
+            <div class="readout-box axis-x">
+              <div class="readout-header">
+                <span>Acc X</span>
+                <span class="unit">g</span>
+              </div>
+              <div class="readout-val font-mono" id="b1-val-ax">+0.000</div>
+              <div class="bar-track"><div class="bar-fill" id="b1-bar-ax" style="width: 50%;"></div></div>
+            </div>
+            <div class="readout-box axis-y">
+              <div class="readout-header">
+                <span>Acc Y</span>
+                <span class="unit">g</span>
+              </div>
+              <div class="readout-val font-mono" id="b1-val-ay">+0.000</div>
+              <div class="bar-track"><div class="bar-fill" id="b1-bar-ay" style="width: 50%;"></div></div>
+            </div>
+            <div class="readout-box axis-z">
+              <div class="readout-header">
+                <span>Acc Z</span>
+                <span class="unit">g</span>
+              </div>
+              <div class="readout-val font-mono" id="b1-val-az">+1.000</div>
+              <div class="bar-track"><div class="bar-fill" id="b1-bar-az" style="width: 75%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Card -->
+        <div class="card card-charts">
+          <!-- Accelerometer Waveforms -->
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon cyan-glow">&#9646;</span>
+              <h3>Frame Vibration &amp; Accelerometer Waveforms (g)</h3>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot color-x"></span><span>Ax</span>
+              <span class="legend-dot color-y"></span><span>Ay</span>
+              <span class="legend-dot color-z"></span><span>Az</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="b1-chart-accel" class="telemetry-chart" width="460" height="115"></canvas>
+          </div>
+
+          <!-- Gyroscope Waveforms -->
+          <div class="card-title-bar mt-sm">
+            <div class="title-with-icon">
+              <span class="card-icon cyan-glow">&#9646;</span>
+              <h3>Conveyor Frame Gyroscope Angular Rates (&deg;/s)</h3>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot color-gx"></span><span>Gx</span>
+              <span class="legend-dot color-gy"></span><span>Gy</span>
+              <span class="legend-dot color-gz"></span><span>Gz</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="b1-chart-gyro" class="telemetry-chart" width="460" height="115"></canvas>
+          </div>
+
+          <!-- Live Serial Console Drawer -->
+          <div class="card-title-bar mt-sm">
+            <div class="title-with-icon">
+              <span class="card-icon cyan-glow">&#9656;</span>
+              <h3>Live Serial Monitor (COM19 &bull; ESP32)</h3>
+            </div>
+            <button id="b1-btn-clear-console" class="btn-micro" title="Clear console output">Clear</button>
+          </div>
+          <div class="serial-console-wrapper">
+            <div id="b1-console" class="serial-console-log font-mono">Ready. Click "Connect COM19" to view live incoming serial data...</div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= NODE 2: ARDUINO UNO (CONVEYOR TRACKER - COM23) ================= -->
+      <section class="board-column board-2-theme" id="board-2-container">
+        <!-- Board Header Card -->
+        <div class="card board-header-card">
+          <div class="card-header-top">
+            <div class="board-title-group">
+              <span class="board-badge badge-board-2">NODE 02</span>
+              <h2>Arduino Uno &bull; Conveyor Tracker <span class="com-tag">(COM23)</span></h2>
+            </div>
+            <div class="status-indicator">
+              <span class="status-dot" id="b2-status-dot"></span>
+              <span class="status-label" id="b2-status-text">Disconnected</span>
+            </div>
+          </div>
+
+          <div class="port-connection-bar">
+            <div class="port-btn-group">
+              <button id="b2-btn-connect" class="btn btn-action-b2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>Connect COM23 (Arduino Uno)</span>
+              </button>
+              <select id="b2-baud" class="baud-select font-mono" title="Select Baud Rate">
+                <option value="9600" selected>9600</option>
+                <option value="115200">115200</option>
+                <option value="57600">57600</option>
+                <option value="38400">38400</option>
+              </select>
+            </div>
+            <div class="stream-stats">
+              <div class="stat-pill"><span class="pill-label">Rate</span><span class="pill-val" id="b2-rate">0 Hz</span></div>
+              <div class="stat-pill"><span class="pill-label">Packets</span><span class="pill-val" id="b2-packets">0</span></div>
+            </div>
+          </div>
+
+          <div id="b2-alert-banner" class="sensor-alert-banner hidden"></div>
+        </div>
+
+        <!-- Conveyor Belt Animated Visualizer Card -->
+        <div class="card card-conveyor">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon conveyor-glow">&#9881;</span>
+              <h3>Conveyor Belt Tracking Visualizer</h3>
+            </div>
+            <div class="control-actions">
+              <span class="pin-tag font-mono">Pin 2 (INT0) &bull; White Line Sensing</span>
+            </div>
+          </div>
+
+          <!-- Virtual Animated Conveyor Graphic -->
+          <div class="conveyor-stage">
+            <!-- Pulleys / Rollers -->
+            <div class="conveyor-roller roller-left" id="roller-left">
+              <div class="spoke spoke-1"></div>
+              <div class="spoke spoke-2"></div>
+            </div>
+            <div class="conveyor-roller roller-right" id="roller-right">
+              <div class="spoke spoke-1"></div>
+              <div class="spoke spoke-2"></div>
+            </div>
+
+            <!-- Moving Belt Surface -->
+            <div class="conveyor-belt-track">
+              <div class="conveyor-belt-surface" id="conveyor-belt-surface">
+                <!-- White marker lines on black belt -->
+                <div class="white-line-marker marker-1"><span class="marker-tag">LOC 1</span></div>
+                <div class="white-line-marker marker-2"><span class="marker-tag">LOC 2</span></div>
+                <div class="white-line-marker marker-3"><span class="marker-tag">LOC 3</span></div>
+                <div class="white-line-marker marker-4"><span class="marker-tag">LOC 4</span></div>
+              </div>
+            </div>
+
+            <!-- Optical Sensor Detection Probe -->
+            <div class="sensor-probe-checkpoint" id="sensor-probe">
+              <div class="probe-head"></div>
+              <div class="probe-laser-beam" id="probe-beam"></div>
+              <div class="probe-lbl">OPTICAL SENSOR</div>
+            </div>
+          </div>
+
+          <!-- Belt Location Zone Checkpoints (Location 1, 2, 3, 4) -->
+          <div class="location-zones-grid">
+            <div class="zone-pill" id="zone-pill-1">
+              <div class="zone-dot"></div>
+              <div class="zone-details">
+                <span class="zone-name">LOCATION 1</span>
+                <span class="zone-sub">Infeed Station</span>
+              </div>
+            </div>
+            <div class="zone-pill" id="zone-pill-2">
+              <div class="zone-dot"></div>
+              <div class="zone-details">
+                <span class="zone-name">LOCATION 2</span>
+                <span class="zone-sub">Sensor Hub</span>
+              </div>
+            </div>
+            <div class="zone-pill" id="zone-pill-3">
+              <div class="zone-dot"></div>
+              <div class="zone-details">
+                <span class="zone-name">LOCATION 3</span>
+                <span class="zone-sub">Inspection Zone</span>
+              </div>
+            </div>
+            <div class="zone-pill" id="zone-pill-4">
+              <div class="zone-dot"></div>
+              <div class="zone-details">
+                <span class="zone-name">LOCATION 4</span>
+                <span class="zone-sub">Outfeed / Sorter</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Digital Conveyor Speedometer Card -->
+        <div class="card card-speedometer">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon conveyor-glow">&#9875;</span>
+              <h3>Conveyor Velocity &amp; Speedometer</h3>
+            </div>
+            <div class="calibration-group">
+              <label for="b2-spacing-input" class="spacing-lbl">Object / Marker Length:</label>
+              <input type="number" id="b2-spacing-input" class="spacing-input font-mono" value="8.0" step="0.5" min="1" max="500">
+              <span class="unit-sm">cm</span>
+            </div>
+          </div>
+
+          <div class="speed-readout-grid">
+            <div class="speed-main-display">
+              <span class="speed-number font-mono highlight-purple" id="b2-val-speed">0.0</span>
+              <span class="speed-unit">cm/s</span>
+              <span class="speed-sub font-mono" id="b2-val-speed-ms">(0.00 m/s)</span>
+            </div>
+            <div class="speed-metrics-column">
+              <div class="metric-row">
+                <span class="m-lbl">Current Location:</span>
+                <strong class="m-val font-mono highlight-purple" id="b2-current-loc-badge">Location 1</strong>
+              </div>
+              <div class="metric-row">
+                <span class="m-lbl">Pulse Interval (&Delta;t):</span>
+                <strong class="m-val font-mono" id="b2-val-dt">-- ms</strong>
+              </div>
+              <div class="metric-row">
+                <span class="m-lbl">Belt Status:</span>
+                <strong class="m-val font-mono text-ok" id="b2-belt-status">Ready / Idle</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Speed Meter Arc / Bar -->
+          <div class="bar-track speed-bar-track mt-xs">
+            <div class="bar-fill speed-bar-fill" id="b2-bar-speed" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Charts Card -->
+        <div class="card card-charts">
+          <!-- Conveyor Speed Waveform -->
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon conveyor-glow">&#9646;</span>
+              <h3>Conveyor Velocity Stream (cm/s)</h3>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot color-speed"></span><span>Speed (cm/s)</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="b2-chart-speed" class="telemetry-chart" width="460" height="120"></canvas>
+          </div>
+
+          <!-- Live Serial Console Drawer -->
+          <div class="card-title-bar mt-sm">
+            <div class="title-with-icon">
+              <span class="card-icon purple-glow">&#9656;</span>
+              <h3>Live Serial Monitor (COM23 &bull; Arduino Uno &bull; 9600 Baud)</h3>
+            </div>
+            <button id="b2-btn-clear-console" class="btn-micro" title="Clear console output">Clear</button>
+          </div>
+          <div class="serial-console-wrapper">
+            <div id="b2-console" class="serial-console-log font-mono">Ready. Click "Connect COM23" to view live incoming serial data from Arduino Uno...</div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= NODE 3: ESP32 (WEIGH STATION & IMU - COM21) ================= -->
+      <section class="board-column board-3-theme" id="board-3-container">
+        <!-- Board Header Card -->
+        <div class="card board-header-card">
+          <div class="card-header-top">
+            <div class="board-title-group">
+              <span class="board-badge badge-board-3">NODE 03</span>
+              <h2>ESP32 &bull; Scale &amp; IMU <span class="com-tag">(COM21)</span></h2>
+            </div>
+            <div class="status-indicator">
+              <span class="status-dot" id="b3-status-dot"></span>
+              <span class="status-label" id="b3-status-text">Disconnected</span>
+            </div>
+          </div>
+
+          <div class="port-connection-bar">
+            <div class="port-btn-group">
+              <button id="b3-btn-connect" class="btn btn-action-b3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                <span>Connect COM21 (ESP32 Scale)</span>
+              </button>
+              <select id="b3-baud" class="baud-select font-mono" title="Select Baud Rate">
+                <option value="115200" selected>115200</option>
+                <option value="9600">9600</option>
+                <option value="57600">57600</option>
+                <option value="38400">38400</option>
+              </select>
+            </div>
+            <div class="stream-stats">
+              <div class="stat-pill"><span class="pill-label">Rate</span><span class="pill-val" id="b3-rate">0 Hz</span></div>
+              <div class="stat-pill"><span class="pill-label">Packets</span><span class="pill-val" id="b3-packets">0</span></div>
+            </div>
+          </div>
+
+          <div id="b3-alert-banner" class="sensor-alert-banner hidden"></div>
+        </div>
+
+        <!-- Digital Load Cell Card (HX711) -->
+        <div class="card card-telemetry" id="b3-card-weight">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon amber-glow">&#9670;</span>
+              <h3>HX711 &bull; Digital Load Cell Scale</h3>
+              <span id="b3-weight-alarm-badge" class="alarm-pill hidden" style="display: none;">⚠️ &gt;50g OVERLOAD</span>
+            </div>
+            <div class="control-actions">
+              <span class="pin-tag font-mono">DOUT 18 | SCK 19</span>
+              <button id="b3-btn-tare-weight" class="btn-micro" title="Tare / Zero the scale">Tare Scale</button>
+            </div>
+          </div>
+
+          <div class="speed-readout-grid">
+            <div class="speed-main-display">
+              <span class="speed-number font-mono highlight-amber" id="b3-val-weight">0.0</span>
+              <span class="speed-unit">g</span>
+              <span class="speed-sub font-mono" id="b3-val-weight-kg">(0.000 kg)</span>
+            </div>
+            <div class="speed-metrics-sidebar">
+              <div class="side-metric">
+                <span class="m-label">PEAK WEIGHT</span>
+                <span class="m-val font-mono" id="b3-val-peak">0.0 g</span>
+              </div>
+              <div class="side-metric">
+                <span class="m-label">SCALE STATUS</span>
+                <span class="m-val font-mono" id="b3-scale-status">Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="speed-gauge-bar mt-sm">
+            <div class="speed-bar-track">
+              <div class="speed-bar-fill" id="b3-bar-weight" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #fbbf24);"></div>
+            </div>
+            <div class="speed-scale-markers font-mono">
+              <span>0g</span>
+              <span>250g</span>
+              <span>500g</span>
+              <span>1000g</span>
+            </div>
+          </div>
+
+          <!-- Weight Waveform Chart -->
+          <div class="chart-wrapper mt-sm">
+            <canvas id="b3-chart-weight" class="telemetry-chart" width="460" height="100"></canvas>
+          </div>
+        </div>
+
+        <!-- 3D Orientation & Attitude Card (MPU-6050) -->
+        <div class="card card-visualizer" id="b3-card-visualizer">
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon amber-glow">&#9671;</span>
+              <h3>MPU-6050 &bull; 3D Orientation &amp; Tilt</h3>
+              <span id="b3-shock-alarm-badge" class="alarm-pill alarm-pill-amber hidden" style="display: none;">💥 SHOCK DISTURBANCE</span>
+            </div>
+            <div class="control-actions">
+              <span class="pin-tag font-mono">SDA 21 | SCL 22</span>
+              <button id="b3-btn-tare-imu" class="btn-micro" title="Tare (Zero Orientation Offset)">Tare IMU</button>
+              <button id="b3-btn-reset-view" class="btn-micro" title="Reset 3D camera">Reset View</button>
+            </div>
+          </div>
+
+          <div class="visualizer-container">
+            <canvas id="b3-canvas-3d" class="canvas-3d" width="460" height="220"></canvas>
+            
+            <div class="attitude-gauge-overlay">
+              <div class="gauge-ring" id="b3-attitude-ring">
+                <div class="horizon-sky"></div>
+                <div class="horizon-ground"></div>
+                <div class="horizon-line" id="b3-horizon-line"></div>
+                <div class="pitch-ladder" id="b3-pitch-ladder">
+                  <div class="ladder-mark mark-p20">+20&deg;</div>
+                  <div class="ladder-mark mark-p10">+10&deg;</div>
+                  <div class="ladder-mark mark-0">&mdash; 0 &mdash;</div>
+                  <div class="ladder-mark mark-m10">-10&deg;</div>
+                  <div class="ladder-mark mark-m20">-20&deg;</div>
+                </div>
+                <div class="reticle">
+                  <div class="reticle-dot"></div>
+                  <div class="reticle-wing left"></div>
+                  <div class="reticle-wing right"></div>
+                </div>
+              </div>
+              <div class="gauge-label">ATTITUDE</div>
+            </div>
+
+            <div class="axes-legend">
+              <span class="axis-pill x-axis">X (Roll)</span>
+              <span class="axis-pill y-axis">Y (Pitch)</span>
+              <span class="axis-pill z-axis">Z (Yaw)</span>
+            </div>
+          </div>
+
+          <div class="angle-metrics-grid">
+            <div class="metric-cell">
+              <span class="metric-name">PITCH</span>
+              <span class="metric-value font-mono" id="b3-val-pitch">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">ROLL</span>
+              <span class="metric-value font-mono" id="b3-val-roll">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">YAW</span>
+              <span class="metric-value font-mono" id="b3-val-yaw">0.0&deg;</span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-name">TEMP</span>
+              <span class="metric-value font-mono highlight-amber" id="b3-val-temp">-- &deg;C</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Card -->
+        <div class="card card-charts">
+          <!-- Accelerometer Waveforms -->
+          <div class="card-title-bar">
+            <div class="title-with-icon">
+              <span class="card-icon amber-glow">&#9646;</span>
+              <h3>Accelerometer Waveforms (g)</h3>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot color-x"></span><span>Ax</span>
+              <span class="legend-dot color-y"></span><span>Ay</span>
+              <span class="legend-dot color-z"></span><span>Az</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="b3-chart-accel" class="telemetry-chart" width="460" height="110"></canvas>
+          </div>
+
+          <!-- Gyroscope Waveforms -->
+          <div class="card-title-bar mt-sm">
+            <div class="title-with-icon">
+              <span class="card-icon amber-glow">&#9646;</span>
+              <h3>Gyroscope Angular Rates (&deg;/s)</h3>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot color-gx"></span><span>Gx</span>
+              <span class="legend-dot color-gy"></span><span>Gy</span>
+              <span class="legend-dot color-gz"></span><span>Gz</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="b3-chart-gyro" class="telemetry-chart" width="460" height="110"></canvas>
+          </div>
+
+          <!-- Live Serial Console Drawer -->
+          <div class="card-title-bar mt-sm">
+            <div class="title-with-icon">
+              <span class="card-icon amber-glow">&#9656;</span>
+              <h3>Live Serial Monitor (COM21 &bull; ESP32 Scale + IMU)</h3>
+            </div>
+            <button id="b3-btn-clear-console" class="btn-micro" title="Clear console output">Clear</button>
+          </div>
+          <div class="serial-console-wrapper">
+            <div id="b3-console" class="serial-console-log font-mono">Ready. Click "Connect COM21" to view live incoming serial data from ESP32 Scale + IMU...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer / Status Bar -->
+    <footer class="status-footer">
+      <div class="footer-item">
+        <span class="footer-dot green" id="webserial-indicator"></span>
+        <span id="webserial-support-text">Web Serial API Ready</span>
+      </div>
+      <div class="footer-item">
+        <span>Total Packets: <strong id="total-packet-count" class="font-mono">0</strong></span>
+      </div>
+      <div class="footer-item">
+        <span>Active Hardware: <strong class="font-mono">ESP32 Frame (COM19) &bull; Arduino Conveyor (COM23) &bull; ESP32 Scale (COM21)</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Wi-Fi / WebSocket Modal Dialog -->
+  <div class="modal-backdrop" id="network-modal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>Connect via Wi-Fi / WebSocket</h3>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">If your boards are running a Wi-Fi WebSocket server, enter their IP addresses below:</p>
+        <div class="input-group">
+          <label for="ws-ip-b1">Node 1 WebSocket URL (ESP32 Frame - COM19):</label>
+          <input type="text" id="ws-ip-b1" class="text-input font-mono" placeholder="ws://192.168.1.101:81">
+        </div>
+        <div class="input-group">
+          <label for="ws-ip-b2">Node 2 WebSocket URL (Arduino Uno - COM23):</label>
+          <input type="text" id="ws-ip-b2" class="text-input font-mono" placeholder="ws://192.168.1.102:81">
+        </div>
+        <div class="input-group">
+          <label for="ws-ip-b3">Node 3 WebSocket URL (ESP32 Scale - COM21):</label>
+          <input type="text" id="ws-ip-b3" class="text-input font-mono" placeholder="ws://192.168.1.103:81">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="modal-connect-btn">Connect WebSocket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Threshold Settings Modal Dialog -->
+  <div class="modal-backdrop" id="thresholds-modal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3>⚙️ Alert &amp; Warning Thresholds</h3>
+        <button class="modal-close" id="thresh-modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Configure safety thresholds for real-time web alarms, audio beeps, and visual alerts:</p>
+        
+        <div class="input-group">
+          <label for="thresh-weight-limit"><strong>Load Cell Weight Alarm (grams):</strong></label>
+          <input type="number" id="thresh-weight-limit" class="text-input font-mono" min="1" max="10000" step="1" value="50">
+          <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-top:4px;">Triggers visual red pulse, warning badge, banner, and audio siren when weight &gt; 50g.</span>
+        </div>
+
+        <div class="input-group" style="margin-top: 14px;">
+          <label for="thresh-shock-g"><strong>MPU-6050 Shock Disturbance (Total G):</strong></label>
+          <input type="number" id="thresh-shock-g" class="text-input font-mono" min="1.0" max="16.0" step="0.05" value="1.45">
+          <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-top:4px;">Triggers amber shock alarm when resultant G-Force &gt; threshold (normal resting is 1.0g).</span>
+        </div>
+
+        <div class="input-group" style="margin-top: 14px;">
+          <label for="thresh-gyro-spike"><strong>MPU-6050 Angular Jerk Spike (&deg;/s):</strong></label>
+          <input type="number" id="thresh-gyro-spike" class="text-input font-mono" min="10" max="2000" step="5" value="90">
+          <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-top:4px;">Triggers disturbance alert if sudden rotational velocity exceeds this threshold on any axis.</span>
+        </div>
+
+        <div class="input-group" style="margin-top: 14px; display:flex; align-items:center; gap: 10px;">
+          <input type="checkbox" id="thresh-sound-toggle" checked style="width: 18px; height: 18px; cursor: pointer;">
+          <label for="thresh-sound-toggle" style="margin: 0; cursor: pointer;"><strong>Enable Audio Alert Siren (Web Audio API)</strong></label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="thresh-modal-reset-btn">Reset Defaults</button>
+        <button class="btn btn-primary" id="thresh-modal-save-btn">Save Thresholds</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/visualizer3d.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
