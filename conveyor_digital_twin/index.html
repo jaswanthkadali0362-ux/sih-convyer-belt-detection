@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ore Sentinels | Autonomous Conveyor Digital Twin &amp; Rupture Prediction</title>
+  <meta name="description" content="Ore Sentinels: Autonomous 3D digital twin condition monitoring and optical rupture prediction system for industrial conveyor installations.">
+
+  <!-- MotionSites Typography: Plus Jakarta Sans & Instrument Serif -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/twin.css?v=ore_sentinels_v1">
+
+  <!-- Three.js ES Module Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="app-viewport">
+    
+    <!-- Top Brand & Controls Header (MotionSites Floating Liquid Glass) -->
+    <header class="top-header liquid-glass liquid-glass-glow">
+      <div class="brand-wrapper">
+        <div class="brand-mark ore-sentinel-emblem">
+          <!-- Ore Sentinels Kinetic Radar & Shield Emblem -->
+          <svg viewBox="0 0 32 32" fill="none" width="32" height="32">
+            <defs>
+              <linearGradient id="oreGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6366f1"/>
+                <stop offset="0.5" stop-color="#00f0ff"/>
+                <stop offset="1" stop-color="#10b981"/>
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="8" fill="#070b14" stroke="rgba(255,255,255,0.15)" stroke-width="1.2"/>
+            <path d="M16 5 L26 9.5 V16.5 C26 23 16 27.5 16 27.5 C16 27.5 6 23 6 16.5 V9.5 Z" stroke="url(#oreGrad)" stroke-width="1.8" fill="rgba(99, 102, 241, 0.12)"/>
+            <path d="M11 16 L14.5 19.5 L21 13" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="16" cy="16.5" r="1.5" fill="#ffffff"/>
+          </svg>
+        </div>
+        <h1 class="system-title">
+          Ore <span class="brand-sentinel">Sentinels</span>
+          <span class="sub-title"><span class="editorial-accent">Autonomous</span> Conveyor Twin &bull; 20Hz Telemetry</span>
+        </h1>
+      </div>
+
+      <!-- Header Action Controls -->
+      <div class="header-right">
+        <!-- Autonomous Drone Inspection Tour -->
+        <button id="btn-drone-tour" class="header-futuristic-btn" title="Start Autonomous 3D Drone Inspection Patrol">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="m19 19-3-3"/><path d="m5 19 3-3"/><rect x="7" y="10" width="10" height="7" rx="2"/></svg>
+          <span id="drone-tour-btn-label">🎥 Drone Tour</span>
+        </button>
+
+        <!-- Industrial Settings Button -->
+        <button id="btn-header-settings" class="header-settings-btn" title="Open Ore Sentinels Settings &amp; Sensor Thresholds">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Settings</span>
+        </button>
+
+        <!-- 7-Day History Button -->
+        <button id="btn-header-history" class="header-history-btn" title="View 7-Day Wear &amp; Rupture Analytics">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>7-Day History</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Left Industrial Navigation Rail (MotionSites Glass) -->
+    <nav class="left-rail liquid-glass">
+      <button class="rail-item active" data-nav="home" title="System Overview">
+        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Overview</span>
+      </button>
+
+      <button class="rail-item" data-nav="all_sensors" id="rail-all-sensors" title="Display All 13 Sensors on Conveyor">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        <span>All Sensors</span>
+      </button>
+
+      <button class="rail-item" data-nav="analytics" title="7-Day Wear Trends & Degradation Curves">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>History</span>
+      </button>
+
+      <button class="rail-item" data-nav="misalignment" title="Lateral Misalignment & Edge Drift">
+        <svg viewBox="0 0 24 24"><path d="M4 12h16"/><path d="m8 8-4 4 4 4"/><path d="m16 8 4 4-4 4"/></svg>
+        <span>Tracking</span>
+      </button>
+
+      <button class="rail-item" data-nav="load_sensor" title="HX711 Load Cell - Frame Joint Stress (Nominal 0.0 kg)">
+        <svg viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+        <span>Load Cell</span>
+      </button>
+
+      <button class="rail-item" data-nav="thickness" title="Belt Rubber Carcass Cover Thickness">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        <span>Thickness</span>
+      </button>
+
+      <button class="rail-item" data-nav="speed" title="Tachometers & Linear Velocity">
+        <svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+        <span>Speed</span>
+      </button>
+
+      <button class="rail-item" data-nav="vision" title="AI Optical Rupture Scanner">
+        <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Damage</span>
+      </button>
+
+      <button class="rail-item" data-nav="temperature" title="Drive Bearing Thermal State">
+        <svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+        <span>Thermal</span>
+      </button>
+
+      <button class="rail-item" data-nav="settings" title="Industrial Settings &amp; Hardware Ports">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Settings</span>
+      </button>
+
+      <div class="rail-spacer"></div>
+
+      <button class="rail-item" data-nav="alarms" title="Active Alarm Log">
+        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span>Alarms</span>
+      </button>
+    </nav>
+
+    <!-- Central 3D Canvas Stage -->
+    <main class="canvas-container">
+      <!-- Loading Status Overlay -->
+      <div id="loading-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 15, 29, 0.85); backdrop-filter: blur(16px); padding: 18px 28px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 14px; z-index: 45; font-weight: 600; font-size: 0.9rem; color: #ffffff;">
+        <div style="width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #00f0ff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <span id="loading-text">Loading Ore Sentinels CAD &amp; Spatial Kinematics...</span>
+      </div>
+
+      <!-- Three.js Render Target Canvas -->
+      <canvas id="webgl-canvas"></canvas>
+
+      <!-- SVG Overlay for Leader Lines -->
+      <svg id="svg-hud-lines"></svg>
+
+      <!-- Floating 3D Spatial HUD Callout Pills Container -->
+      <div id="hud-overlay-container"></div>
+
+      <!-- Cinematic Camera Toolbar (Top-Left) -->
+      <div class="camera-toolbar liquid-glass">
+        <button id="btn-view-iso" class="tool-btn active">Overview</button>
+        <button id="btn-view-head" class="tool-btn">Head Drive</button>
+        <button id="btn-view-tail" class="tool-btn">Tensioner</button>
+        <button id="btn-view-scan" class="tool-btn">Intake &amp; Laser</button>
+        <button id="btn-view-side" class="tool-btn">Profile</button>
+        <button id="btn-view-top" class="tool-btn">Plan</button>
+        <button id="btn-toggle-spin" class="tool-btn">Pause</button>
+      </div>
+
+      <!-- AI Optical Profilometer & Rupture Scanner Card (Top-Right) -->
+      <div class="ai-vision-card liquid-glass">
+        <div class="ai-card-header">
+          <div class="ai-card-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+            <span>Optical Inspection · Cam 01</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button id="btn-expand-vision" class="ai-expand-btn" title="Open Fullscreen Machine Vision Diagnostics Console">Console</button>
+            <span id="ai-cam-fps-badge" class="ai-scan-badge">60 FPS</span>
+          </div>
+        </div>
+
+        <!-- Camera Source Switcher Bar -->
+        <div class="ai-source-toggle-group">
+          <button id="btn-cam-factory" class="ai-source-btn active" title="Virtual 3D Camera Sensor (/conveyor/camera/image_raw)">
+            <span class="rec-pulse-dot" style="display: inline-block; background: #10b981;"></span>
+            <span>Virtual Cam</span>
+          </button>
+          <button id="btn-cam-webcam" class="ai-source-btn" title="Stream live video from your real physical webcam/camera">
+            <span class="rec-pulse-dot" id="cam-rec-dot" style="display: none;"></span>
+            <span>Real Cam</span>
+          </button>
+        </div>
+
+        <!-- Virtual 3D Camera Angles & Sensor Modes -->
+        <div class="ai-filter-group" style="margin-top: 4px; gap: 3px;">
+          <button id="btn-lens-overhead" class="ai-filter-pill active" title="Virtual Sensor Bracket (Overhead Carry Run)">Overhead</button>
+          <button id="btn-lens-nadir" class="ai-filter-pill" title="Top-Down Nadir (Laser Profilometer Cross-Section)">Top-Down</button>
+          <button id="btn-lens-discharge" class="ai-filter-pill" title="Head Drive Drum Discharge Gantry">Discharge</button>
+          <button id="btn-filter-yolo" class="ai-filter-pill active" title="Defect Detection Bounding Box">Defect Overlay</button>
+          <button id="btn-filter-thermal" class="ai-filter-pill" title="Virtual Depth Camera / False-Color LUT">Depth</button>
+        </div>
+
+        <!-- Live Camera Stream Canvas Box (Virtual 3D Camera Sensor + CV Telemetry Overlay) -->
+        <div class="ai-canvas-box" style="position: relative; width: 320px; height: 175px; overflow: hidden; border-radius: 6px; background: #040810;">
+          <canvas id="gazebo-cam-canvas" width="320" height="175" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 1; display: block;"></canvas>
+          <canvas id="ai-vision-canvas" width="320" height="175" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; pointer-events: auto; cursor: pointer;" title="Click to open Fullscreen Machine Vision Diagnostics Console"></canvas>
+        </div>
+
+        <!-- Active Source & Device Info -->
+        <div class="ai-cam-info-bar">
+          <span id="ai-cam-device-label">Stream: /conveyor/cam_01/raw</span>
+          <span id="ai-cam-status-label" style="color: #10b981; font-weight: 700;">LIVE FEED</span>
+        </div>
+
+        <div>
+          <div class="ai-metric-row">
+            <span style="color: var(--text-muted); font-size: 0.68rem;">RUPTURE RISK INDEX:</span>
+            <span id="ai-rupture-risk-val" style="color: #10b981; font-weight: 800;">0.04%</span>
+          </div>
+          <div class="risk-progress-bar" style="margin-top: 4px;">
+            <div id="ai-rupture-risk-bar" class="risk-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="ai-metric-row" style="font-size: 0.67rem;">
+          <span style="color: var(--text-muted);">SPLICE INTEGRITY:</span>
+          <span style="color: #38bdf8; font-weight: 700;">Joint #40 · Nominal (99.4%)</span>
+        </div>
+
+        <!-- Hidden Video Element for Real Camera Processing -->
+        <video id="vision-webcam-video" playsinline muted autoplay style="display: none;"></video>
+      </div>
+
+      <!-- Conveyor Belt Health Donut Widget (Bottom-Right) -->
+      <div class="health-kpi-card liquid-glass">
+        <div class="health-kpi-title">Conveyor Belt Health</div>
+        <svg class="health-donut-svg" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="44" stroke="rgba(255,255,255,0.08)" stroke-width="20" fill="none" />
+          <circle id="donut-seg-optimal" class="donut-segment donut-optimal" cx="60" cy="60" r="44" />
+          <circle id="donut-seg-warning" class="donut-segment donut-warning" cx="60" cy="60" r="44" />
+          <circle id="donut-seg-critical" class="donut-segment donut-critical" cx="60" cy="60" r="44" />
+        </svg>
+        <div class="health-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--status-green);"></span><span id="legend-val-opt">70.0%</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--status-yellow);"></span><span id="legend-val-warn">10.0%</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--status-red);"></span><span id="legend-val-crit">20.0%</span></div>
+        </div>
+      </div>
+
+      <!-- Interactive Day-by-Day Historical Timeline Scrubber Bar -->
+      <div id="timeline-scrubber-bar" class="timeline-scrubber-bar liquid-glass"></div>
+
+      <!-- Sliding Detail Inspection Drawer -->
+      <aside id="sensor-inspector-drawer" class="sensor-drawer"></aside>
+    </main>
+
+    <!-- Bottom Industrial Alert Marquee -->
+    <footer class="bottom-ticker liquid-glass">
+      <div id="ticker-timestamp" class="ticker-timestamp">Thursday, April 22, 2021 11:27:57 AM</div>
+      <div id="ticker-banner-text" class="ticker-alert-banner">Misalignment ST02 above the alert limit (> 71.199997 mm)</div>
+      <div id="ticker-tag-text" class="ticker-alert-tag">MisST02Attention</div>
+    </footer>
+
+  </div>
+
+  <!-- 7-Day Daily Wear & Rupture Prediction Analytics Modal Container -->
+  <div id="analytics-modal-root" class="analytics-modal-root"></div>
+
+  <!-- Ore Sentinels Machine Vision Diagnostics Console Modal Container -->
+  <div id="vision-console-modal-root" class="analytics-modal-root"></div>
+
+  <!-- Industrial Settings & Hardware Configuration Modal Container -->
+  <div id="settings-modal-root" class="analytics-modal-root"></div>
+
+  <!-- Stress Test & Rupture Simulator Modal Container -->
+  <div id="simulator-modal-root" class="analytics-modal-root"></div>
+
+  <!-- Autonomous Drone Reconnaissance OSD Container -->
+  <div id="drone-tour-osd" class="drone-tour-osd" style="display: none;"></div>
+
+  <!-- Boot Application -->
+  <script type="module" src="js/app.js?v=ore_sentinels_v2"></script>
+</body>
+</html>

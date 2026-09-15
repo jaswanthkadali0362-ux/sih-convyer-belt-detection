@@ -1,0 +1,224 @@
+<?xml version="1.0" ?>
+<robot name="(Unsaved)" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find (Unsaved)_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find (Unsaved)_description)/urdf/(Unsaved).trans" />
+<xacro:include filename="$(find (Unsaved)_description)/urdf/(Unsaved).gazebo" />
+<link name="base_link">
+  <inertial>
+    <origin xyz="-0.0002354925576125097 -0.39870213925071846 0.0038001166433010557" rpy="0 0 0"/>
+    <mass value="6.838797424372215"/>
+    <inertia ixx="0.719389" iyy="0.013127" izz="0.712465" ixy="-0.000145" iyz="-0.000399" ixz="0.000157"/>
+  </inertial>
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__6__1">
+  <inertial>
+    <origin xyz="0.029999999999999978 3.0897243692706855e-07 2.1613319246827079e-07" rpy="0 0 0"/>
+    <mass value="0.08240024466238413"/>
+    <inertia ixx="2e-06" iyy="2.6e-05" izz="2.6e-05" ixy="-0.0" iyz="-0.0" ixz="-0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.03 -0.102509 -0.087687" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__6__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.03 -0.102509 -0.087687" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__6__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller_1">
+  <inertial>
+    <origin xyz="0.029999999999999995 -3.0897243694788523e-07 2.1613319246827079e-07" rpy="0 0 0"/>
+    <mass value="0.08240024466238413"/>
+    <inertia ixx="2e-06" iyy="2.6e-05" izz="2.6e-05" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.03 0.032509 -0.087687" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.03 0.032509 -0.087687" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller_1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__1__1">
+  <inertial>
+    <origin xyz="0.03200000000000001 1.6685805526162056e-07 -3.9324120906791826e-07" rpy="0 0 0"/>
+    <mass value="0.08720307224128394"/>
+    <inertia ixx="2e-06" iyy="3.1e-05" izz="3.1e-05" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.032 0.291761 -0.156029" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__1__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.032 0.291761 -0.156029" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__1__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__2__1">
+  <inertial>
+    <origin xyz="0.03200000000000001 2.1851561560204402e-08 -2.577436074291395e-07" rpy="0 0 0"/>
+    <mass value="0.0872030722412839"/>
+    <inertia ixx="2e-06" iyy="3.1e-05" izz="3.1e-05" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.032 0.354237 -0.155066" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__2__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.032 0.354237 -0.155066" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__2__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__3__1">
+  <inertial>
+    <origin xyz="0.03200000000000001 7.923033279455538e-08 4.440079262590935e-09" rpy="0 0 0"/>
+    <mass value="0.0872030722412839"/>
+    <inertia ixx="2e-06" iyy="3.1e-05" izz="3.1e-05" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.032 0.323246 -0.103268" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__3__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.032 0.323246 -0.103268" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__3__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__4__1">
+  <inertial>
+    <origin xyz="0.03200000000000001 4.50609345170605e-07 -1.0875820888323062e-07" rpy="0 0 0"/>
+    <mass value="0.08720307224128414"/>
+    <inertia ixx="2e-06" iyy="3.1e-05" izz="3.1e-05" ixy="0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.032 0.894931 -0.212484" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__4__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.032 0.894931 -0.212484" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__4__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="roller__5__1">
+  <inertial>
+    <origin xyz="0.03200000000000001 -4.0239077925274813e-07 -2.447294666918509e-08" rpy="0 0 0"/>
+    <mass value="0.08720307224128414"/>
+    <inertia ixx="2e-06" iyy="3.1e-05" izz="3.1e-05" ixy="-0.0" iyz="0.0" ixz="0.0"/>
+  </inertial>
+  <visual>
+    <origin xyz="0.032 0.96236 -0.227475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__5__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin xyz="0.032 0.96236 -0.227475" rpy="0 0 0"/>
+    <geometry>
+      <mesh filename="package://(Unsaved)_description/meshes/roller__5__1.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="Revolute 1" type="continuous">
+  <origin xyz="-0.03 0.102509 0.087687" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__6__1"/>
+  <axis xyz="-1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 2" type="continuous">
+  <origin xyz="-0.03 -0.032509 0.087687" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller_1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 3" type="continuous">
+  <origin xyz="-0.032 -0.291761 0.156029" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__1__1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 4" type="continuous">
+  <origin xyz="-0.032 -0.354237 0.155066" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__2__1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 5" type="continuous">
+  <origin xyz="-0.032 -0.323246 0.103268" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__3__1"/>
+  <axis xyz="-1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 6" type="continuous">
+  <origin xyz="-0.032 -0.894931 0.212484" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__4__1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
+
+<joint name="Revolute 7" type="continuous">
+  <origin xyz="-0.032 -0.96236 0.227475" rpy="0 0 0"/>
+  <parent link="base_link"/>
+  <child link="roller__5__1"/>
+  <axis xyz="1.0 0.0 0.0"/>
+</joint>
+
+</robot>

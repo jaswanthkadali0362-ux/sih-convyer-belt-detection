@@ -16,6 +16,8 @@ build/
 
 # Temporary files & logs
 *.log
+*.pyc
+__pycache__/
 scratch/
 
 # Exclude Web Dashboard UI

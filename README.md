@@ -1,6 +1,6 @@
-# SIH Smart Conveyor Belt Detection & Tri-Node Telemetry Hub
+# Ore Sentinels | Autonomous Conveyor Digital Twin & Rupture Prediction System
 
-An industrial-grade IoT Conveyor Belt Monitoring System built for real-time velocity tracking, white line marker station identification, digital load cell weighing, and frame vibration kinematics with automated safety alerts.
+An industrial-grade 3D Digital Twin and IoT Conveyor Condition Monitoring System built with MotionSites liquid glass UI, Three.js spatial kinematics, real-time optical rupture prediction, 20Hz sensor telemetry, and hardware DAQ integration.
 
 ---
 
@@ -99,16 +99,15 @@ An industrial-grade IoT Conveyor Belt Monitoring System built for real-time velo
 
 ## 💻 Getting Started
 
-### 1. Run the Web Dashboard
+### 1. Run the Ore Sentinels 3D Digital Twin
 ```bash
-cd web_dashboard
-python -m http.server 8080
+cd conveyor_digital_twin
+python twin_server.py
 ```
-Open **[http://localhost:8080](http://localhost:8080)** in Google Chrome, Microsoft Edge, or Brave (Web Serial API compatible).
+Or simply double-click `launch_twin.bat` on Windows!
+Open **[http://localhost:8080](http://localhost:8080)** in Google Chrome, Microsoft Edge, or Brave.
 
-### 2. Connect Hardware
-- Click **Connect COM19** for Node 1 (115200 baud).
-- Click **Connect COM23** for Node 2 (9600 baud).
-- Click **Connect COM21** for Node 3 (115200 baud).
-
-Or simply click **Demo / Sim Mode** to test the entire telemetry suite and alert system in software simulation.
+### 2. Connect Hardware & DAQ Links
+- In the Ore Sentinels interface, click **Settings** (or press the top-right Settings button).
+- Configure Serial COM ports (COM19, COM21, COM23) or USB line-scan cameras under **Microcontroller USB DAQ**.
+- Or test using the built-in autonomous simulation and 20Hz telemetry stream!
