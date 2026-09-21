@@ -16,9 +16,25 @@ import select
 import hashlib
 import base64
 import threading
+import re
+from collections import deque
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
+
+# Optional Hardware DAQ & Vision Libraries
+try:
+    import serial
+    import serial.tools.list_ports
+    HAS_SERIAL = True
+except ImportError:
+    HAS_SERIAL = False
+
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
@@ -32,13 +48,19 @@ PORT = 8080
 system_state = {
     "timestamp": int(time.time() * 1000),
     "conveyor_running": True,
-    "belt_speed": 2.96, # m/s
+    "belt_speed": 0.85, # m/s
+    "num_joints": 2,
+    "joints_count": 2,
+    "joints": [
+        {"id": 1, "name": "Splice Joint #1", "status": "normal", "integrity_pct": 99.8, "wear_loss_mm": 0.03},
+        {"id": 2, "name": "Splice Joint #2", "status": "normal", "integrity_pct": 99.8, "wear_loss_mm": 0.04}
+    ],
     "sensors": {
         "misalignment_st01": {
             "tag": "Misalignment ST01",
-            "val": 32.40,
+            "val": 2.80,
             "unit": "mm",
-            "status": "normal", # Green (< 50mm)
+            "status": "normal", # Green (< 45mm)
             "mesh": "TIME_OF_FLIGHT_1.stl",
             "coord": [-0.0287, -0.0338, 0.104],
             "warn_limit": 45.0,
@@ -47,9 +69,9 @@ system_state = {
         },
         "misalignment_st02": {
             "tag": "Misalignment ST02",
-            "val": 72.33,
+            "val": 4.30,
             "unit": "mm",
-            "status": "warning", # Yellow
+            "status": "normal", # Green (< 71.2mm)
             "mesh": "TIME_OF_FLIGHT__1__1.stl",
             "coord": [-0.0287, -0.0338, 0.076],
             "warn_limit": 71.2,
@@ -57,15 +79,15 @@ system_state = {
             "description": "Carrying strand head approach tracking"
         },
         "load_sensor_st01": {
-            "tag": "Load Sensor ST01",
-            "val": 0.0,
+            "tag": "Load ST01",
+            "val": 0.09,
             "unit": "kg",
             "status": "normal", # Green
             "mesh": "LOAD_CELL_1.stl",
             "coord": [-0.0375, 0.0344, 0.0873],
             "warn_limit": 45.0,
             "crit_limit": 55.0,
-            "description": "HX711 Strain Gauge Load Cell - Frame Joint Stress (Nominal 0.0 kg, stress rises only when frame joints loosen)"
+            "description": "HX711 Strain Gauge Load Cell - Frame Joint Stress (Nominal 0.09 kg, stress rises only when frame joints loosen)"
         },
         "thickness_st01": {
             "tag": "Thickness ST01",
@@ -77,11 +99,11 @@ system_state = {
             "warn_limit": 15.0,
             "crit_limit": 10.0,
             "direction": "min",
-            "description": "Belt Rubber Carcass Cover Thickness Sensor (near ST01 Misalignment)"
+            "description": "Belt Rubber Carcass Cover Thickness (near ST01 Misalignment)"
         },
         "speed_mid_02": {
-            "tag": "Speed Sensor 02",
-            "val": 2.96,
+            "tag": "Speed 02",
+            "val": 0.85,
             "unit": "m/s",
             "status": "normal", # Green
             "mesh": "SPEED_1.stl",
@@ -92,7 +114,7 @@ system_state = {
         },
         "speed_head_drive": {
             "tag": "Head Drive Speed",
-            "val": 3.08,
+            "val": 0.88,
             "unit": "m/s",
             "status": "normal", # Green
             "mesh": "SPEED__1__1.stl",
@@ -103,7 +125,7 @@ system_state = {
         },
         "speed_tail_01": {
             "tag": "Tail Drum Speed",
-            "val": 2.94,
+            "val": 0.84,
             "unit": "m/s",
             "status": "normal",
             "mesh": "SPEED__1.stl",
@@ -114,7 +136,7 @@ system_state = {
         },
         "temp_bearing_01": {
             "tag": "Temperature ST01",
-            "val": 45.5,
+            "val": 26.5,
             "unit": "°C",
             "status": "normal", # Green
             "mesh": "TEMPERATURE_1.stl",
@@ -136,7 +158,7 @@ system_state = {
         },
         "current_motor_01": {
             "tag": "Motor Current",
-            "val": 18.4,
+            "val": 4.2,
             "unit": "A",
             "status": "normal",
             "mesh": "CURRENT_SENSOR_1.stl",
@@ -147,7 +169,7 @@ system_state = {
         },
         "vibration_head": {
             "tag": "Head Vibration",
-            "val": 1.45,
+            "val": 0.35,
             "unit": "mm/s",
             "status": "normal",
             "mesh": "VIBRATION_1.stl",
@@ -158,7 +180,7 @@ system_state = {
         },
         "vibration_tail": {
             "tag": "Tail Vibration",
-            "val": 1.12,
+            "val": 0.24,
             "unit": "mm/s",
             "status": "normal",
             "mesh": "VIBRATION_SENSOR_1.stl",
@@ -169,7 +191,7 @@ system_state = {
         },
         "vibration_mid1": {
             "tag": "Idler 1 Vibration",
-            "val": 0.95,
+            "val": 0.18,
             "unit": "mm/s",
             "status": "normal",
             "mesh": "VIBRATION__1__1.stl",
@@ -180,7 +202,7 @@ system_state = {
         },
         "vibration_mid2": {
             "tag": "Idler 2 Vibration",
-            "val": 1.05,
+            "val": 0.22,
             "unit": "mm/s",
             "status": "normal",
             "mesh": "VIBRATION__2__1.stl",
@@ -191,127 +213,173 @@ system_state = {
         }
     },
     "health": {
-        "optimal": 70.0,
-        "warning": 10.0,
-        "critical": 20.0
+        "optimal": 96.0,
+        "warning": 3.0,
+        "critical": 1.0
     },
-    "alert_banner": "Misalignment ST02 above the alert limit (> 71.199997 mm)",
-    "alert_tag": "MisST02Attention",
-    "belt_slip": 3.9 # %
+    "alert_banner": "All conveyor parameters within normal operating envelope.",
+    "alert_tag": "Optimal",
+    "belt_slip": 0.5, # %
+    "esp32_com19": {
+        "connected": False,
+        "port": "COM19",
+        "baud": 115200,
+        "rx_count": 0,
+        "device_id": "SMARTBELT_ESP32_01",
+        "last_seen": 0,
+        "raw_packet": "",
+        "temperature_c": 0.0,
+        "vibration_rms": 0.0,
+        "slip_pct": 0.0,
+        "tension_kn": 0.0,
+        "pitch": 0.0,
+        "roll": 0.0,
+        "yaw": 0.0,
+        "actuators": {"relay_closed": True, "beacon": "GREEN", "buzzer": "OFF"},
+        "watchdog_ok": True,
+        "error": None
+    },
+    "usb_camera": {
+        "connected": False,
+        "name": "Logi C270 HD WebCam",
+        "resolution": "1280x720",
+        "fps": 30,
+        "stream_url": "/api/camera/stream.mjpg"
+    },
+    "prototype_telemetry": {
+        "temperature": 27.4,
+        "vibration": 0.42,
+        "load": 0.48,
+        "thickness": 22.1,
+        "speed": 0.86,
+        "current": 2.3,
+        "misalignment": 3.5,
+        "bearing_temperature": 28.7,
+        "wear_loss": 0.06,
+        "wear_rate": 0.002
+    }
 }
 
 # 7-Day Historical Telemetry Database (Days -6 to Today)
-# Models physical conveyor degradation, wear progression, tonnage correlation, and drift escalation
+# Calibrated for prototype / industrial condition monitoring with 2 vulcanized splice joints
 HISTORICAL_DAYS = [
     {
         "day_index": 0,
         "date_str": "Monday, Sep 08",
         "relative_label": "Day -6",
-        "tonnage_tons": 48200,
+        "load_kg": 0.06,
+        "tonnage_tons": 0.06,
+        "tonnage": 0.06,
         "operating_hours": 23.4,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 24.15,
-        "misalignment_st01": 36.20,
-        "misalignment_st02": 58.40,
-        "speed_mid_02": 3.01,
-        "speed_head_drive": 3.04,
-        "speed_tail_01": 2.98,
-        "temp_bearing_01": 41.2,
+        "load_sensor_st01": 0.06,
+        "thickness_st01": 22.95,
+        "misalignment_st01": 2.10,
+        "misalignment_st02": 3.20,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 24.2,
         "damage_st01": 0,
-        "current_motor_01": 17.2,
-        "vibration_head": 1.12,
-        "vibration_tail": 1.02,
-        "vibration_mid1": 0.88,
-        "vibration_mid2": 0.94,
-        "belt_slip": 2.0,
-        "health": {"optimal": 92.0, "warning": 6.0, "critical": 2.0},
+        "current_motor_01": 3.9,
+        "vibration_head": 0.28,
+        "vibration_tail": 0.20,
+        "vibration_mid1": 0.16,
+        "vibration_mid2": 0.18,
+        "belt_slip": 0.4,
+        "health": {"optimal": 98.0, "warning": 2.0, "critical": 0.0},
         "alert_banner": "All conveyor parameters within normal operating envelope.",
         "alert_tag": "Optimal",
-        "rupture_risk": 0.010,
+        "rupture_risk": 0.001,
         "status": "normal",
-        "notes": "Weekly start baseline. Splice joints in nominal tolerance."
+        "notes": "Weekly start baseline. 2 splice joints in nominal tolerance."
     },
     {
         "day_index": 1,
         "date_str": "Tuesday, Sep 09",
         "relative_label": "Day -5",
-        "tonnage_tons": 51400,
+        "load_kg": 0.07,
+        "tonnage_tons": 0.07,
+        "tonnage": 0.07,
         "operating_hours": 24.0,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 23.92,
-        "misalignment_st01": 38.60,
-        "misalignment_st02": 61.10,
-        "speed_mid_02": 2.99,
-        "speed_head_drive": 3.03,
-        "speed_tail_01": 2.96,
-        "temp_bearing_01": 42.0,
+        "load_sensor_st01": 0.07,
+        "thickness_st01": 22.92,
+        "misalignment_st01": 2.30,
+        "misalignment_st02": 3.50,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 24.8,
         "damage_st01": 0,
-        "current_motor_01": 17.5,
-        "vibration_head": 1.18,
-        "vibration_tail": 1.05,
-        "vibration_mid1": 0.90,
-        "vibration_mid2": 0.96,
-        "belt_slip": 2.3,
-        "health": {"optimal": 88.0, "warning": 9.0, "critical": 3.0},
+        "current_motor_01": 4.0,
+        "vibration_head": 0.29,
+        "vibration_tail": 0.21,
+        "vibration_mid1": 0.16,
+        "vibration_mid2": 0.19,
+        "belt_slip": 0.4,
+        "health": {"optimal": 97.0, "warning": 3.0, "critical": 0.0},
         "alert_banner": "All conveyor parameters within normal operating envelope.",
         "alert_tag": "Optimal",
-        "rupture_risk": 0.012,
+        "rupture_risk": 0.001,
         "status": "normal",
-        "notes": "Standard load cycle. Idler alignment verified."
+        "notes": "Standard load cycle. 2 joints verified healthy."
     },
     {
         "day_index": 2,
         "date_str": "Wednesday, Sep 10",
         "relative_label": "Day -4",
-        "tonnage_tons": 49800,
+        "load_kg": 0.05,
+        "tonnage_tons": 0.05,
+        "tonnage": 0.05,
         "operating_hours": 22.8,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 23.68,
-        "misalignment_st01": 41.50,
-        "misalignment_st02": 64.30,
-        "speed_mid_02": 2.98,
-        "speed_head_drive": 3.05,
-        "speed_tail_01": 2.95,
-        "temp_bearing_01": 42.8,
+        "load_sensor_st01": 0.05,
+        "thickness_st01": 22.90,
+        "misalignment_st01": 2.50,
+        "misalignment_st02": 3.80,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 25.1,
         "damage_st01": 0,
-        "current_motor_01": 17.8,
-        "vibration_head": 1.25,
-        "vibration_tail": 1.08,
-        "vibration_mid1": 0.92,
-        "vibration_mid2": 0.98,
-        "belt_slip": 2.8,
-        "health": {"optimal": 85.0, "warning": 11.0, "critical": 4.0},
-        "alert_banner": "Carrying strand tracking drift progressing toward warning band.",
-        "alert_tag": "TrackingWatch",
-        "rupture_risk": 0.015,
+        "current_motor_01": 4.0,
+        "vibration_head": 0.30,
+        "vibration_tail": 0.21,
+        "vibration_mid1": 0.17,
+        "vibration_mid2": 0.20,
+        "belt_slip": 0.4,
+        "health": {"optimal": 97.0, "warning": 3.0, "critical": 0.0},
+        "alert_banner": "All conveyor parameters within normal operating envelope.",
+        "alert_tag": "Optimal",
+        "rupture_risk": 0.001,
         "status": "normal",
-        "notes": "Moderate chute skirt friction observed at loading point."
+        "notes": "Nominal belt alignment. Both splices intact."
     },
     {
         "day_index": 3,
         "date_str": "Thursday, Sep 11",
         "relative_label": "Day -3",
-        "tonnage_tons": 53200,
+        "load_kg": 0.08,
+        "tonnage_tons": 0.08,
+        "tonnage": 0.08,
         "operating_hours": 24.0,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 23.45,
-        "misalignment_st01": 44.80,
-        "misalignment_st02": 67.90,
-        "speed_mid_02": 2.97,
-        "speed_head_drive": 3.06,
-        "speed_tail_01": 2.95,
-        "temp_bearing_01": 43.6,
+        "load_sensor_st01": 0.08,
+        "thickness_st01": 22.88,
+        "misalignment_st01": 2.70,
+        "misalignment_st02": 4.10,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 25.5,
         "damage_st01": 0,
-        "current_motor_01": 18.0,
-        "vibration_head": 1.31,
-        "vibration_tail": 1.10,
-        "vibration_mid1": 0.93,
-        "vibration_mid2": 1.01,
-        "belt_slip": 3.2,
-        "health": {"optimal": 80.0, "warning": 15.0, "critical": 5.0},
+        "current_motor_01": 4.1,
+        "vibration_head": 0.31,
+        "vibration_tail": 0.22,
+        "vibration_mid1": 0.17,
+        "vibration_mid2": 0.20,
+        "belt_slip": 0.5,
+        "health": {"optimal": 96.0, "warning": 3.0, "critical": 1.0},
         "alert_banner": "Continuous optical vision line-scan baseline active (Damage ST01: 0).",
         "alert_tag": "NominalProfilometry",
-        "rupture_risk": 0.008,
+        "rupture_risk": 0.001,
         "status": "normal",
         "notes": "Keyence optical line-scan: continuous belt cover profilometry nominal."
     },
@@ -319,85 +387,91 @@ HISTORICAL_DAYS = [
         "day_index": 4,
         "date_str": "Friday, Sep 12",
         "relative_label": "Day -2",
-        "tonnage_tons": 52100,
+        "load_kg": 0.06,
+        "tonnage_tons": 0.06,
+        "tonnage": 0.06,
         "operating_hours": 23.5,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 23.22,
-        "misalignment_st01": 47.30,
-        "misalignment_st02": 69.80,
-        "speed_mid_02": 2.96,
-        "speed_head_drive": 3.07,
-        "speed_tail_01": 2.94,
-        "temp_bearing_01": 44.3,
+        "load_sensor_st01": 0.06,
+        "thickness_st01": 22.85,
+        "misalignment_st01": 2.90,
+        "misalignment_st02": 4.30,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 25.9,
         "damage_st01": 0,
-        "current_motor_01": 18.1,
-        "vibration_head": 1.38,
-        "vibration_tail": 1.11,
-        "vibration_mid1": 0.94,
-        "vibration_mid2": 1.03,
-        "belt_slip": 3.6,
-        "health": {"optimal": 75.0, "warning": 18.0, "critical": 7.0},
-        "alert_banner": "Misalignment ST01 lateral drift exceeds warning threshold (> 45.00 mm).",
-        "alert_tag": "MisST01Warning",
-        "rupture_risk": 0.012,
-        "status": "warning",
-        "notes": "Return strand lateral drift warning triggered. Tension realignment scheduled."
+        "current_motor_01": 4.1,
+        "vibration_head": 0.32,
+        "vibration_tail": 0.23,
+        "vibration_mid1": 0.18,
+        "vibration_mid2": 0.21,
+        "belt_slip": 0.5,
+        "health": {"optimal": 96.0, "warning": 3.0, "critical": 1.0},
+        "alert_banner": "All conveyor parameters within normal operating envelope.",
+        "alert_tag": "Optimal",
+        "rupture_risk": 0.001,
+        "status": "normal",
+        "notes": "Carrying strand lateral drift nominal. 2 joints within tolerance."
     },
     {
         "day_index": 5,
         "date_str": "Saturday, Sep 13",
         "relative_label": "Yesterday",
-        "tonnage_tons": 47900,
+        "load_kg": 0.07,
+        "tonnage_tons": 0.07,
+        "tonnage": 0.07,
         "operating_hours": 23.8,
-        "load_sensor_st01": 0.0,
-        "thickness_st01": 22.98,
-        "misalignment_st01": 51.10,
-        "misalignment_st02": 71.40,
-        "speed_mid_02": 2.95,
-        "speed_head_drive": 3.08,
-        "speed_tail_01": 2.94,
-        "temp_bearing_01": 45.1,
+        "load_sensor_st01": 0.07,
+        "thickness_st01": 22.83,
+        "misalignment_st01": 3.10,
+        "misalignment_st02": 4.60,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 26.2,
         "damage_st01": 0,
-        "current_motor_01": 18.3,
-        "vibration_head": 1.42,
-        "vibration_tail": 1.12,
-        "vibration_mid1": 0.95,
-        "vibration_mid2": 1.04,
-        "belt_slip": 3.8,
-        "health": {"optimal": 72.0, "warning": 12.0, "critical": 16.0},
-        "alert_banner": "Misalignment ST01 tripped critical alert limit (> 50.00 mm) & ST02 warning.",
-        "alert_tag": "MisST01Critical",
-        "rupture_risk": 0.018,
-        "status": "critical",
-        "notes": "Return strand edge contact alert. Operator acknowledged alert."
+        "current_motor_01": 4.2,
+        "vibration_head": 0.33,
+        "vibration_tail": 0.23,
+        "vibration_mid1": 0.18,
+        "vibration_mid2": 0.21,
+        "belt_slip": 0.5,
+        "health": {"optimal": 96.0, "warning": 3.0, "critical": 1.0},
+        "alert_banner": "All conveyor parameters within normal operating envelope.",
+        "alert_tag": "Optimal",
+        "rupture_risk": 0.001,
+        "status": "normal",
+        "notes": "Weekend shift inspection. 2 joints verified sound."
     },
     {
         "day_index": 6,
         "date_str": "Sunday, Sep 14",
         "relative_label": "Today (Live)",
-        "tonnage_tons": 33900,
+        "load_kg": 0.09,
+        "tonnage_tons": 0.09,
+        "tonnage": 0.09,
         "operating_hours": 16.5,
-        "load_sensor_st01": 0.0,
+        "load_sensor_st01": 0.09,
         "thickness_st01": 22.81,
-        "misalignment_st01": 32.40,
-        "misalignment_st02": 72.33,
-        "speed_mid_02": 2.96,
-        "speed_head_drive": 3.08,
-        "speed_tail_01": 2.94,
-        "temp_bearing_01": 45.5,
+        "misalignment_st01": 2.80,
+        "misalignment_st02": 4.30,
+        "speed_mid_02": 0.85,
+        "speed_head_drive": 0.88,
+        "speed_tail_01": 0.84,
+        "temp_bearing_01": 26.5,
         "damage_st01": 0,
-        "current_motor_01": 18.4,
-        "vibration_head": 1.45,
-        "vibration_tail": 1.12,
-        "vibration_mid1": 0.95,
-        "vibration_mid2": 1.05,
-        "belt_slip": 3.9,
-        "health": {"optimal": 78.0, "warning": 14.0, "critical": 8.0},
-        "alert_banner": "Misalignment ST02 above the alert limit (> 71.199997 mm)",
-        "alert_tag": "MisST02Attention",
-        "rupture_risk": 0.020,
-        "status": "warning",
-        "notes": "Active shift. Live 20Hz streaming connected."
+        "current_motor_01": 4.2,
+        "vibration_head": 0.35,
+        "vibration_tail": 0.24,
+        "vibration_mid1": 0.18,
+        "vibration_mid2": 0.22,
+        "belt_slip": 0.5,
+        "health": {"optimal": 96.0, "warning": 3.0, "critical": 1.0},
+        "alert_banner": "All conveyor parameters within normal operating envelope.",
+        "alert_tag": "Optimal",
+        "rupture_risk": 0.001,
+        "status": "normal",
+        "notes": "Active shift. 2 splice joints verified nominal. Live 20Hz streaming connected."
     }
 ]
 
@@ -462,8 +536,320 @@ state_lock = threading.Lock()
 sse_subscribers = []
 simulation_active = True
 
+# ==============================================================================
+# HARDWARE DAQ: MULTI-PORT AUTO-SCANNING SERIAL MANAGER
+# Dynamically auto-scans and connects to all active telemetry nodes (COM19, COM28, COM35, etc.)
+# ==============================================================================
+class AutoSerialManager:
+    def __init__(self):
+        self.running = False
+        self.open_ports = {}  # { port_name: serial_connection }
+        self.active_ports = set()
+        self.serial_logs = deque(maxlen=200)
+        self.lock = threading.Lock()
+        self.weight_offset = None
+
+    def start(self):
+        self.running = True
+        t = threading.Thread(target=self._scan_and_manage_workers, daemon=True, name="AutoSerial-Scanner")
+        t.start()
+
+    def send_command(self, cmd):
+        with self.lock:
+            sent = False
+            for port, conn in list(self.open_ports.items()):
+                if conn and conn.is_open:
+                    try:
+                        c = cmd if cmd.endswith("\n") else cmd + "\n"
+                        conn.write(c.encode("utf-8"))
+                        sent = True
+                    except Exception:
+                        pass
+            if sent:
+                self.serial_logs.append({
+                    "time": time.strftime("%H:%M:%S"),
+                    "direction": "TX",
+                    "text": cmd.strip()
+                })
+            return sent
+
+    def _scan_and_manage_workers(self):
+        if not HAS_SERIAL:
+            print("[AutoSerial] Note: pyserial not available in Python environment.")
+            return
+
+        print("[AutoSerial] Auto-scanning all COM ports for microcontrollers and sensors...")
+
+        while self.running:
+            try:
+                available = serial.tools.list_ports.comports()
+                target_ports = []
+                for p in available:
+                    desc = (p.description or "").lower()
+                    hwid = (p.hwid or "").lower()
+                    dev = p.device
+                    # Filter for USB-to-UART bridges or specific known ports
+                    if any(k in desc or k in hwid for k in ["usb", "cp210", "ch340", "ftdi", "uart", "serial"]) or dev in ["COM19", "COM28", "COM35"]:
+                        if "bluetooth" not in desc and "bthenum" not in hwid:
+                            target_ports.append(dev)
+
+                for port in target_ports:
+                    if port not in self.open_ports:
+                        t = threading.Thread(target=self._port_worker, args=(port,), daemon=True, name=f"Worker-{port}")
+                        t.start()
+
+            except Exception as e:
+                print(f"[AutoSerial] Port scan error: {e}")
+
+            time.sleep(3.0)
+
+    def _port_worker(self, port):
+        baud = 9600 if "35" in port else 115200
+        print(f"[AutoSerial] Launching worker on {port} @ {baud} baud (dtr=False, rts=False)...")
+
+        while self.running:
+            conn = None
+            try:
+                s = serial.Serial()
+                s.port = port
+                s.baudrate = baud
+                s.timeout = 2.0
+                s.dtr = False
+                s.rts = False
+                s.open()
+                time.sleep(0.1)
+                s.dtr = False
+                s.rts = False
+                conn = s
+
+                with self.lock:
+                    self.open_ports[port] = s
+                    self.active_ports.add(port)
+
+                print(f" [OK] Telemetry node connected on {port} ({baud} Baud)")
+                with state_lock:
+                    e = system_state["esp32_com19"]
+                    e["connected"] = True
+                    e["port"] = " + ".join(sorted(self.active_ports))
+                    e["error"] = None
+
+                while self.running and s.is_open:
+                    raw_bytes = s.readline()
+                    if not raw_bytes:
+                        continue
+                    line = raw_bytes.decode("utf-8", errors="replace").strip()
+                    if not line:
+                        continue
+
+                    self.serial_logs.append({
+                        "time": time.strftime("%H:%M:%S"),
+                        "direction": "RX",
+                        "text": f"[{port}] {line}"
+                    })
+
+                    self._parse_line(port, line)
+
+            except Exception as e:
+                with self.lock:
+                    if port in self.open_ports:
+                        del self.open_ports[port]
+                    self.active_ports.discard(port)
+                with state_lock:
+                    e = system_state["esp32_com19"]
+                    e["connected"] = len(self.active_ports) > 0
+                    e["port"] = " + ".join(sorted(self.active_ports)) if self.active_ports else "Scanning..."
+                    if not self.active_ports:
+                        e["error"] = str(e)
+            finally:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+            time.sleep(3.0)
+
+    def _parse_line(self, port, line):
+        now_ms = int(time.time() * 1000)
+        with state_lock:
+            e = system_state["esp32_com19"]
+            e["connected"] = True
+            e["rx_count"] += 1
+            e["last_seen"] = now_ms
+            e["raw_packet"] = f"[{port}] {line}"
+            proto = system_state["prototype_telemetry"]
+            s = system_state["sensors"]
+
+        # Format 1: JSON {"device_id":"SMARTBELT_ESP32_01", ...}
+        if line.startswith("{") and ("telemetry" in line or "device_id" in line):
+            try:
+                data = json.loads(line)
+                tel = data.get("telemetry", {})
+                temp = float(tel.get("temperature_c", 0.0))
+                vib = float(tel.get("vibration_rms_mms", 0.0))
+                slip = float(tel.get("speed_slip_pct", 0.0))
+                tens = float(tel.get("tension_kn", 0.0))
+
+                with state_lock:
+                    if temp > 0:
+                        proto["temperature"] = round(temp, 1)
+                        proto["bearing_temperature"] = round(temp + 1.3, 1)
+                        s["temp_bearing_01"]["val"] = round(temp, 1)
+                    if vib > 0:
+                        proto["vibration"] = round(vib, 2)
+                        s["vibration_head"]["val"] = round(vib, 2)
+                    if slip > 0:
+                        system_state["belt_slip"] = round(slip, 1)
+                    if tens > 0:
+                        proto["load"] = round(tens, 2)
+                        if "load_sensor_st01" in s:
+                            s["load_sensor_st01"]["val"] = round(tens, 2)
+                return
+            except json.JSONDecodeError:
+                pass
+
+        # Format 3: Weight: -14.5 g | Accel: (0.27, 0.95, -0.30) | Gyro: (-4.7, 0.6, -0.9) | Temp: 36.2 C
+        m = re.search(r"Weight:\s*([-\d.]+)\s*g?\s*\|\s*Accel:\s*\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\s*\)\s*\|\s*Gyro:\s*\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\s*\)\s*\|\s*Temp:\s*([-\d.]+)", line, re.I)
+        if m:
+            weight_g = float(m.group(1))
+            ax, ay, az = float(m.group(2)), float(m.group(3)), float(m.group(4))
+            temp_c = float(m.group(8))
+
+            if self.weight_offset is None:
+                self.weight_offset = weight_g
+
+            net_weight_g = weight_g - self.weight_offset
+            calibrated_load = round(max(0.02, 0.48 + (net_weight_g / 500.0)), 2)
+            acc_mag = math.sqrt(ax*ax + ay*ay + az*az)
+            calibrated_vib = round(max(0.15, acc_mag * 0.42), 2)
+
+            with state_lock:
+                proto["load"] = calibrated_load
+                proto["temperature"] = round(temp_c, 1)
+                proto["bearing_temperature"] = round(temp_c + 1.2, 1)
+                proto["vibration"] = calibrated_vib
+
+                if "load_sensor_st01" in s:
+                    s["load_sensor_st01"]["val"] = calibrated_load
+                s["temp_bearing_01"]["val"] = round(temp_c, 1)
+                s["vibration_head"]["val"] = calibrated_vib
+                e["temperature_c"] = round(temp_c, 1)
+                e["vibration_rms"] = calibrated_vib
+            return
+
+        # Format 4: Conveyor Belt Speedometer (COM35)
+        m_speed = re.search(r"Speed:\s*([-\d.]+)\s*cm/s", line, re.I)
+        if m_speed:
+            speed_cms = float(m_speed.group(1))
+            if speed_cms > 0:
+                speed_ms = round(speed_cms / 100.0, 2)
+                with state_lock:
+                    proto["speed"] = speed_ms
+                    s["speed_mid_02"]["val"] = speed_ms
+                    s["speed_head_drive"]["val"] = round(speed_ms + 0.02, 2)
+            return
+
+        # Format 2: Frame_IMU -> Accel: ...
+        m2 = re.search(r"Frame_IMU\s*->\s*Accel:\s*\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\s*\)\s*g\s*\|\s*Gyro:\s*\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\s*\)\s*dps\s*\|\s*Pitch:\s*([-\d.]+)\s*\|\s*Roll:\s*([-\d.]+)\s*\|\s*Yaw:\s*([-\d.]+)\s*\|\s*Vib:\s*([-\d.]+)g\s*\|\s*Temp:\s*([-\d.]+)", line, re.I)
+        if m2:
+            vib = float(m2.group(10))
+            temp = float(m2.group(11))
+            with state_lock:
+                s["temp_bearing_01"]["val"] = round(temp, 1)
+                s["vibration_head"]["val"] = round(vib, 2)
+                proto["temperature"] = round(temp, 1)
+                proto["vibration"] = round(vib, 2)
+            return
+
+
+# ==============================================================================
+# HARDWARE OPTICAL DAQ: USB CAMERA STREAM MANAGER (Logi C270 HD WebCam)
+# ==============================================================================
+class CameraManager:
+    def __init__(self):
+        self.cap = None
+        self.frame = None
+        self.jpeg_bytes = None
+        self.lock = threading.Lock()
+        self.running = False
+        self.cam_name = "Detecting..."
+        self.cam_index = None
+        self.res = (1280, 720)
+        self.fps = 30
+        self.last_frame_time = 0
+
+    def find_and_open_camera(self):
+        if not HAS_CV2:
+            return False
+        for idx in [1, 0, 2]:
+            try:
+                cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+                    ret, frame = cap.read()
+                    if ret and frame is not None:
+                        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        self.cap = cap
+                        self.cam_index = idx
+                        self.res = (w, h)
+                        self.cam_name = f"Logi C270 HD WebCam (DirectShow Index {idx})" if idx == 1 else f"USB Camera (Index {idx})"
+                        print(f" [OK] USB Camera opened: {self.cam_name} ({w}x{h})")
+                        with state_lock:
+                            c = system_state["usb_camera"]
+                            c["connected"] = True
+                            c["name"] = self.cam_name
+                            c["resolution"] = f"{w}x{h}"
+                        return True
+                    cap.release()
+            except Exception:
+                pass
+        return False
+
+    def start(self):
+        self.running = True
+        t = threading.Thread(target=self._worker, daemon=True, name="Camera-Worker")
+        t.start()
+
+    def _worker(self):
+        if not HAS_CV2:
+            print("[Camera] opencv-python not available.")
+            return
+
+        if not self.find_and_open_camera():
+            print("[Camera] Waiting for USB camera device...")
+
+        while self.running:
+            if self.cap is None or not self.cap.isOpened():
+                time.sleep(2.0)
+                self.find_and_open_camera()
+                continue
+
+            try:
+                ret, frame = self.cap.read()
+                if ret and frame is not None:
+                    ret2, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                    if ret2:
+                        with self.lock:
+                            self.frame = frame
+                            self.jpeg_bytes = jpeg.tobytes()
+                            self.last_frame_time = time.time()
+                    time.sleep(0.030) # ~30 FPS
+                else:
+                    time.sleep(0.05)
+            except Exception:
+                time.sleep(0.1)
+
+    def get_jpeg(self):
+        with self.lock:
+            return self.jpeg_bytes
+
+
+esp32_serial = AutoSerialManager()
+camera_manager = CameraManager()
+
 def telemetry_simulator_loop():
-    """Simulates realistic industrial telemetry fluctuations at 20Hz"""
+    """Simulates realistic industrial telemetry fluctuations at 20Hz, preserving live hardware data"""
     global simulation_active
     t = 0.0
     while True:
@@ -473,42 +859,54 @@ def telemetry_simulator_loop():
             continue
         with state_lock:
             system_state["timestamp"] = int(time.time() * 1000)
+            now_ms = system_state["timestamp"]
 
-            # Realistic noise & slight sinusoidal drift
             s = system_state["sensors"]
+            proto = system_state["prototype_telemetry"]
+
+            # Check if live hardware telemetry arrived within the last 3.5 seconds
+            hw_alive = (now_ms - system_state["esp32_com19"]["last_seen"] < 3500)
+
+            if not hw_alive:
+                # Small-scale prototype telemetry calculation when hardware is offline
+                proto["temperature"] = round(27.4 + 0.25 * math.sin(t * 0.2) + random.uniform(-0.04, 0.04), 1)
+                proto["vibration"] = round(0.42 + 0.03 * math.sin(t * 1.5) + random.uniform(-0.01, 0.01), 2)
+                proto["load"] = round(0.48 + 0.005 * math.sin(t * 0.4) + random.uniform(-0.002, 0.002), 2)
+                proto["speed"] = round(0.86 + 0.02 * math.sin(t * 2.0) + random.uniform(-0.005, 0.005), 2)
+                proto["bearing_temperature"] = round(28.7 + 0.2 * math.sin(t * 0.1) + random.uniform(-0.03, 0.03), 1)
+
+            proto["thickness"] = round(22.1 + 0.02 * math.sin(t * 0.25) + random.uniform(-0.005, 0.005), 1)
+            proto["current"] = round(2.3 + 0.08 * math.sin(t * 0.8) + random.uniform(-0.02, 0.02), 1)
+            proto["misalignment"] = round(3.5 + 0.20 * math.sin(t * 0.6) + random.uniform(-0.04, 0.04), 1)
+            proto["wear_loss"] = 0.06
+            proto["wear_rate"] = 0.002
+
+            # Synchronize into individual station sensor dictionaries
+            s["misalignment_st01"]["val"] = proto["misalignment"]
+            s["misalignment_st01"]["status"] = "normal" if proto["misalignment"] <= 10.0 else ("warning" if proto["misalignment"] <= 20.0 else "critical")
             
-            # ST01 operates safely under 50 mm (Normal operating envelope, < 45.0 mm warn limit)
-            s["misalignment_st01"]["val"] = round(32.40 + 0.35 * math.sin(t * 1.2) + random.uniform(-0.08, 0.08), 2)
-            if s["misalignment_st01"]["val"] >= s["misalignment_st01"]["crit_limit"]:
-                s["misalignment_st01"]["status"] = "critical"
-            elif s["misalignment_st01"]["val"] >= s["misalignment_st01"]["warn_limit"]:
-                s["misalignment_st01"]["status"] = "warning"
-            else:
-                s["misalignment_st01"]["status"] = "normal"
+            s["misalignment_st02"]["val"] = round(proto["misalignment"] + 0.8, 1)
+            s["misalignment_st02"]["status"] = "normal"
             
-            # ST02 fluctuates around 72.33 mm (Warning limit 71.2 mm)
-            s["misalignment_st02"]["val"] = round(72.33 + 0.45 * math.sin(t * 0.9) + random.uniform(-0.1, 0.1), 2)
-            
-            # Load Sensor ST01: Joint stress load cell. Initial nominal value is 0.0 kg (stress rises only when frame joints loosen)
             if "load_sensor_st01" in s:
-                s["load_sensor_st01"]["val"] = 0.0
+                s["load_sensor_st01"]["val"] = proto["load"]
+                s["load_sensor_st01"]["status"] = "normal" if proto["load"] <= 5.0 else ("warning" if proto["load"] <= 8.0 else "critical")
             
-            # Thickness Sensor fluctuates around 22.81 mm
-            s["thickness_st01"]["val"] = round(22.81 + 0.04 * math.sin(t * 0.25) + random.uniform(-0.01, 0.01), 2)
+            s["thickness_st01"]["val"] = proto["thickness"]
+            s["thickness_st01"]["status"] = "normal" if proto["thickness"] >= 18.0 else ("warning" if proto["thickness"] >= 15.0 else "critical")
             
-            # Speeds fluctuate slightly around 2.96 and 3.08 m/s
-            s["speed_mid_02"]["val"] = round(2.96 + 0.02 * math.sin(t * 2.0) + random.uniform(-0.01, 0.01), 2)
-            s["speed_head_drive"]["val"] = round(3.08 + 0.03 * math.sin(t * 2.1) + random.uniform(-0.01, 0.01), 2)
-            s["speed_tail_01"]["val"] = round(2.94 + 0.02 * math.sin(t * 1.9) + random.uniform(-0.01, 0.01), 2)
+            s["speed_mid_02"]["val"] = proto["speed"]
+            s["speed_head_drive"]["val"] = round(proto["speed"] + 0.02, 2)
+            s["speed_tail_01"]["val"] = round(proto["speed"] - 0.02, 2)
             
-            # Bearing temperature
-            s["temp_bearing_01"]["val"] = round(45.5 + 0.2 * math.sin(t * 0.1) + random.uniform(-0.05, 0.05), 1)
+            s["temp_bearing_01"]["val"] = proto["bearing_temperature"]
+            s["temp_bearing_01"]["status"] = "normal" if proto["bearing_temperature"] <= 60.0 else ("warning" if proto["bearing_temperature"] <= 75.0 else "critical")
             
-            # Motor current
-            s["current_motor_01"]["val"] = round(18.4 + 0.3 * math.sin(t * 1.5) + random.uniform(-0.1, 0.1), 1)
+            s["current_motor_01"]["val"] = proto["current"]
+            s["current_motor_01"]["status"] = "normal" if proto["current"] <= 5.0 else ("warning" if proto["current"] <= 7.0 else "critical")
             
-            # Vibration velocity RMS
-            s["vibration_head"]["val"] = round(1.45 + 0.12 * math.sin(t * 3.5) + random.uniform(-0.04, 0.04), 2)
+            s["vibration_head"]["val"] = proto["vibration"]
+            s["vibration_head"]["status"] = "normal" if proto["vibration"] <= 2.0 else ("warning" if proto["vibration"] <= 3.5 else "critical")
 
             # Recalculate slip
             head = s["speed_head_drive"]["val"]
@@ -528,7 +926,7 @@ def telemetry_simulator_loop():
                 system_state["alert_tag"] = "MisST02Attention"
             else:
                 system_state["alert_banner"] = "All conveyor parameters within normal operating envelope."
-                system_state["alert_tag"] = "Normal"
+                system_state["alert_tag"] = "Optimal"
 
 
 class IndustrialHTTPHandler(SimpleHTTPRequestHandler):
@@ -555,6 +953,73 @@ class IndustrialHTTPHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
+        # 0. API: ESP32 Hardware DAQ & Serial Telemetry
+        if parsed.path == "/api/serial/status":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            with state_lock:
+                data = json.dumps({"status": "ok", "esp32": system_state["esp32_com19"]})
+            self.wfile.write(data.encode("utf-8"))
+            return
+
+        if parsed.path == "/api/serial/log":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            data = json.dumps({"status": "ok", "logs": list(esp32_serial.serial_logs)})
+            self.wfile.write(data.encode("utf-8"))
+            return
+
+        # 0b. API: USB Camera Machine Vision Stream (Logi C270 HD WebCam)
+        if parsed.path == "/api/camera/status":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            with state_lock:
+                data = json.dumps({"status": "ok", "camera": system_state["usb_camera"]})
+            self.wfile.write(data.encode("utf-8"))
+            return
+
+        if parsed.path == "/api/camera/snapshot.jpg":
+            frame = camera_manager.get_jpeg()
+            if frame:
+                self.send_response(200)
+                self.send_header("Content-Type", "image/jpeg")
+                self.send_header("Content-Length", str(len(frame)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(frame)
+            else:
+                self.send_error(503, "Camera frame not ready")
+            return
+
+        if parsed.path == "/api/camera/stream.mjpg":
+            self.send_response(200)
+            self.send_header("Age", "0")
+            self.send_header("Cache-Control", "no-cache, private")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=FRAME")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            try:
+                while True:
+                    frame = camera_manager.get_jpeg()
+                    if frame:
+                        self.wfile.write(b"--FRAME\r\n")
+                        self.send_header("Content-Type", "image/jpeg")
+                        self.send_header("Content-Length", str(len(frame)))
+                        self.end_headers()
+                        self.wfile.write(frame)
+                        self.wfile.write(b"\r\n")
+                    time.sleep(0.033) # ~30 FPS
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
+                return
+            return
+
         # 1. API: Telemetry Snapshot
         if parsed.path == "/api/telemetry":
             self.send_response(200)
@@ -578,24 +1043,28 @@ class IndustrialHTTPHandler(SimpleHTTPRequestHandler):
                 current_st02 = system_state["sensors"]["misalignment_st02"]["val"]
             
             # Recalculate dynamic summary
-            cum_tonnage = sum(d["tonnage_tons"] for d in HISTORICAL_DAYS)
+            cum_load = round(sum(d.get("load_kg", d.get("tonnage_tons", 0)) for d in HISTORICAL_DAYS), 2)
             total_loss = round(HISTORICAL_DAYS[0]["thickness_st01"] - current_thick, 2)
-            rem_days = max(1, round((current_thick - 10.0) / 0.024))
+            if total_loss < 0: total_loss = 0.14
+            rem_days = max(1, round((current_thick - 10.0) / 0.002))
 
             response_data = {
                 "total_days": len(HISTORICAL_DAYS),
+                "num_joints": 2,
                 "summary": {
-                    "cumulative_tonnage": cum_tonnage,
+                    "cumulative_load": cum_load,
+                    "cumulative_tonnage": cum_load,
                     "total_wear_loss_mm": total_loss,
                     "initial_thickness_mm": HISTORICAL_DAYS[0]["thickness_st01"],
                     "current_thickness_mm": current_thick,
                     "replacement_threshold_mm": 10.0,
                     "warning_threshold_mm": 15.0,
-                    "wear_rate_mm_day": 0.024,
+                    "wear_rate_mm_day": 0.002,
                     "projected_days_remaining": rem_days,
                     "current_drift_st01": current_st01,
                     "current_drift_st02": current_st02,
-                    "active_alarms": 2
+                    "active_alarms": 0,
+                    "num_joints": 2
                 },
                 "days": HISTORICAL_DAYS
             }
@@ -660,9 +1129,24 @@ class IndustrialHTTPHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
+    def do_HEAD(self):
+        parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/"):
+            self.send_response(200)
+            if "snapshot" in parsed.path:
+                self.send_header("Content-Type", "image/jpeg")
+            elif "stream.mjpg" in parsed.path:
+                self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=FRAME")
+            else:
+                self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            return
+        super().do_HEAD()
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -720,6 +1204,21 @@ class IndustrialHTTPHandler(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "ok", "simulation_active": simulation_active}).encode("utf-8"))
             return
 
+        # 3. API: Send Serial Command to ESP32 (COM19)
+        if parsed.path == "/api/serial/send":
+            content_len = int(self.headers.get("Content-Length", 0))
+            post_body = self.rfile.read(content_len).decode("utf-8")
+            try:
+                ok = esp32_serial.send_command(post_body)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok" if ok else "error", "sent": post_body}).encode("utf-8"))
+            except Exception as e:
+                self.send_error(500, str(e))
+            return
+
         self.send_error(404, "Endpoint not found")
 
 
@@ -727,14 +1226,20 @@ def run_server():
     server_address = ("", PORT)
     httpd = ThreadedHTTPServer(server_address, IndustrialHTTPHandler)
     
+    # Start Hardware DAQ Workers (ESP32 COM19 & USB Camera)
+    esp32_serial.start()
+    camera_manager.start()
+
     # Start background simulator thread
     sim_thread = threading.Thread(target=telemetry_simulator_loop, daemon=True)
     sim_thread.start()
 
     print("=================================================================")
-    print(" [OK] ABB Ability(TM) Conveyor 3D Digital Twin Server Started")
+    print(" [OK] Ore Sentinels - 3D Digital Twin & Telemetry Server Started")
     print(f" [URL] Dashboard URL: http://localhost:{PORT}")
     print(f" [DIR] Serving Meshes from: {MESH_DIR}")
+    print(f" [DAQ] ESP32 COM19 Listener: Active @ 115200 Baud")
+    print(f" [CAM] USB Machine Vision: Active (DirectShow / MJPEG)")
     print(f" [STREAM] Streaming Telemetry: /api/telemetry/stream (20Hz SSE & REST)")
     print("=================================================================")
 

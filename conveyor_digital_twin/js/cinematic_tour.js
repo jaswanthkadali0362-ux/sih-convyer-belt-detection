@@ -61,7 +61,7 @@ export class CinematicDroneTour {
         id: 'crew_catwalk',
         title: 'STATION 04 // RELIABILITY PATROL CREW CATWALK',
         stationTag: 'SAFETY & MAINTENANCE WALKWAY',
-        desc: 'Active reliability crew inspecting idler bearings, pull-cords, and tracking sensors.',
+        desc: 'Active reliability crew inspecting idler bearings, pull-cords, and tracking stations.',
         pos: { x: -0.38, y: 0.26, z: -0.14 },
         lookAt: { x: -0.14, y: 0.14, z: -0.14 },
         altitude: '0.88 m',
@@ -252,16 +252,16 @@ export class CinematicDroneTour {
       <div class="drone-letterbox top">
         <div class="drone-telemetry-left">
           <span class="drone-rec-pulse"></span>
-          <span class="drone-tag">DRONE AUTONOMOUS RECONNAISSANCE // SURVEILLANCE PATROL</span>
+          <span class="drone-tag">GUIDED 3D INSPECTION TOUR // CONVEYOR CV-101</span>
           <span class="drone-station-badge" id="drone-station-badge">${wp.stationTag}</span>
         </div>
         <div class="drone-telemetry-right">
           <span class="drone-metric">ALT: <strong id="drone-alt-val">${wp.altitude}</strong></span>
           <span class="drone-metric">BRG: <strong id="drone-brg-val">${wp.bearing}</strong></span>
           <span class="drone-metric">ZOOM: <strong id="drone-zoom-val">${wp.zoom}</strong></span>
-          <button id="btn-drone-exit" class="drone-exit-btn" title="Exit Drone Tour (ESC)">
+          <button id="btn-drone-exit" class="drone-exit-btn" title="Exit 3D Tour (ESC)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            EXIT PATROL
+            EXIT TOUR
           </button>
         </div>
       </div>

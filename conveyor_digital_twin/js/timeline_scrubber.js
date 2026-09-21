@@ -32,32 +32,39 @@ export class TimelineScrubber {
       }
     } catch (e) {
       console.warn('[TimelineScrubber] Failed to load history API, using fallback data', e);
-      this.historyData = this.getFallbackHistory();
+      this.historyData = this.getFallbackData();
     }
   }
 
-  getFallbackHistory() {
+  getFallbackData() {
     return {
       total_days: 7,
+      num_joints: 2,
       summary: {
-        cumulative_tonnage: 336500,
-        total_wear_loss_mm: 1.34,
+        cumulative_load: 0.48,
+        cumulative_tonnage: 0.48,
+        total_wear_loss_mm: 0.14,
         current_thickness_mm: 22.81,
         replacement_threshold_mm: 10.0,
-        wear_rate_mm_day: 0.024,
-        projected_days_remaining: 533,
-        active_alarms: 2
+        wear_rate_mm_day: 0.002,
+        projected_days_remaining: 1250,
+        active_alarms: 0,
+        num_joints: 2
       },
       days: [
-        { day_index: 0, date_str: "Monday, Sep 08", relative_label: "Day -6", tonnage_tons: 48200, thickness_st01: 24.15, misalignment_st01: 36.20, misalignment_st02: 58.40, status: "normal" },
-        { day_index: 1, date_str: "Tuesday, Sep 09", relative_label: "Day -5", tonnage_tons: 51400, thickness_st01: 23.92, misalignment_st01: 38.60, misalignment_st02: 61.10, status: "normal" },
-        { day_index: 2, date_str: "Wednesday, Sep 10", relative_label: "Day -4", tonnage_tons: 49800, thickness_st01: 23.68, misalignment_st01: 41.50, misalignment_st02: 64.30, status: "normal" },
-        { day_index: 3, date_str: "Thursday, Sep 11", relative_label: "Day -3", tonnage_tons: 53200, thickness_st01: 23.45, misalignment_st01: 44.80, misalignment_st02: 67.90, status: "warning" },
-        { day_index: 4, date_str: "Friday, Sep 12", relative_label: "Day -2", tonnage_tons: 52100, thickness_st01: 23.22, misalignment_st01: 47.30, misalignment_st02: 69.80, status: "warning" },
-        { day_index: 5, date_str: "Saturday, Sep 13", relative_label: "Yesterday", tonnage_tons: 47900, thickness_st01: 22.98, misalignment_st01: 51.10, misalignment_st02: 71.40, status: "critical" },
-        { day_index: 6, date_str: "Sunday, Sep 14", relative_label: "Today (Live)", tonnage_tons: 33900, thickness_st01: 22.81, misalignment_st01: 52.33, misalignment_st02: 72.33, status: "critical" }
+        { day_index: 0, date_str: "Monday, Sep 08", relative_label: "Day -6", load_kg: 0.06, tonnage_tons: 0.06, thickness_st01: 22.95, misalignment_st01: 2.10, misalignment_st02: 3.20, status: "normal" },
+        { day_index: 1, date_str: "Tuesday, Sep 09", relative_label: "Day -5", load_kg: 0.07, tonnage_tons: 0.07, thickness_st01: 22.92, misalignment_st01: 2.30, misalignment_st02: 3.50, status: "normal" },
+        { day_index: 2, date_str: "Wednesday, Sep 10", relative_label: "Day -4", load_kg: 0.05, tonnage_tons: 0.05, thickness_st01: 22.90, misalignment_st01: 2.50, misalignment_st02: 3.80, status: "normal" },
+        { day_index: 3, date_str: "Thursday, Sep 11", relative_label: "Day -3", load_kg: 0.08, tonnage_tons: 0.08, thickness_st01: 22.88, misalignment_st01: 2.70, misalignment_st02: 4.10, status: "normal" },
+        { day_index: 4, date_str: "Friday, Sep 12", relative_label: "Day -2", load_kg: 0.06, tonnage_tons: 0.06, thickness_st01: 22.85, misalignment_st01: 2.90, misalignment_st02: 4.30, status: "normal" },
+        { day_index: 5, date_str: "Saturday, Sep 13", relative_label: "Yesterday", load_kg: 0.07, tonnage_tons: 0.07, thickness_st01: 22.83, misalignment_st01: 3.10, misalignment_st02: 4.60, status: "normal" },
+        { day_index: 6, date_str: "Sunday, Sep 14", relative_label: "Today (Live)", load_kg: 0.09, tonnage_tons: 0.09, thickness_st01: 22.81, misalignment_st01: 2.80, misalignment_st02: 4.30, status: "normal" }
       ]
     };
+  }
+
+  getFallbackHistory() {
+    return this.getFallbackData();
   }
 
   render() {
@@ -93,8 +100,9 @@ export class TimelineScrubber {
             ${days.map((d, i) => {
               const isSelected = (i === this.currentDayIndex);
               const statusClass = d.status || 'normal';
+              const loadVal = (d.load_kg !== undefined ? d.load_kg : (d.tonnage_tons !== undefined ? d.tonnage_tons : 0.07));
               return `
-                <button class="day-step-node ${isSelected ? 'selected' : ''} status-${statusClass}" data-day-index="${i}" title="${d.date_str} - Tonnage: ${d.tonnage_tons?.toLocaleString()} T">
+                <button class="day-step-node ${isSelected ? 'selected' : ''} status-${statusClass}" data-day-index="${i}" title="${d.date_str} - Load: ${loadVal.toFixed(2)} KG">
                   <div class="step-dot"></div>
                   <div class="step-label-box">
                     <span class="step-rel-label">${d.relative_label}</span>

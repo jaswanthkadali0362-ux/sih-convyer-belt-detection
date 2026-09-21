@@ -154,14 +154,130 @@ class StreamHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'text/html')
             self.end_headers()
-            html = f"""
-            <html><body style="background:#0a0e1a;color:#fff;font-family:sans-serif;text-align:center;padding:20px;">
-            <h2>Logi C270 HD WebCam Stream Server</h2>
-            <p>Active Camera: <strong>{cam_mgr.cam_name}</strong></p>
-            <p><a style="color:#00f0ff;" href="/stream.mjpg">Open MJPEG Stream</a> | <a style="color:#00f0ff;" href="/snapshot.jpg">Snapshot</a></p>
-            <img src="/stream.mjpg" style="max-width:800px;border-radius:8px;border:1px solid #334155;"/>
-            </body></html>
-            """
+            html = f"""<!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Logi C270 Camera Streamer</title>
+              <style>
+                body {{
+                  background: #060913;
+                  color: #e2e8f0;
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 100vh;
+                  margin: 0;
+                  padding: 20px;
+                  box-sizing: border-box;
+                }}
+                .card {{
+                  background: rgba(15, 23, 42, 0.9);
+                  border: 1px solid rgba(0, 240, 255, 0.25);
+                  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 240, 255, 0.15);
+                  border-radius: 12px;
+                  padding: 20px 24px;
+                  max-width: 900px;
+                  width: 100%;
+                  text-align: center;
+                }}
+                h2 {{ margin-top: 0; color: #00f0ff; letter-spacing: 0.05em; font-size: 1.4rem; }}
+                .stream-container {{
+                  position: relative;
+                  margin: 16px 0;
+                  border-radius: 8px;
+                  overflow: hidden;
+                  border: 1px solid #334155;
+                  background: #000;
+                  cursor: pointer;
+                }}
+                .stream-img {{
+                  width: 100%;
+                  max-height: 70vh;
+                  object-fit: contain;
+                  display: block;
+                }}
+                .btn-group {{ display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }}
+                .btn {{
+                  background: rgba(0, 240, 255, 0.15);
+                  border: 1px solid rgba(0, 240, 255, 0.4);
+                  color: #00f0ff;
+                  padding: 8px 18px;
+                  border-radius: 6px;
+                  font-weight: 700;
+                  cursor: pointer;
+                  text-decoration: none;
+                  font-size: 0.85rem;
+                  transition: all 0.2s ease;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
+                }}
+                .btn:hover {{
+                  background: #00f0ff;
+                  color: #040810;
+                  box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+                }}
+                .btn-primary {{
+                  background: #0284c7;
+                  border-color: #38bdf8;
+                  color: #fff;
+                }}
+                .btn-primary:hover {{
+                  background: #38bdf8;
+                  color: #040810;
+                }}
+                :fullscreen .stream-img, :-webkit-full-screen .stream-img {{
+                  max-height: 100vh;
+                  height: 100vh;
+                  width: 100vw;
+                  object-fit: contain;
+                }}
+                :fullscreen, :-webkit-full-screen {{
+                  background: #000 !important;
+                }}
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h2>LOGI C270 HD WEBCAM // LIVE STREAM</h2>
+                <p style="color: #94a3b8; font-size: 0.9rem; margin: 4px 0 12px;">Active Device: <strong style="color: #10b981;">{cam_mgr.cam_name}</strong> &bull; Resolution: <strong>{cam_mgr.res[0]}x{cam_mgr.res[1]}</strong></p>
+                
+                <div class="stream-container" id="stream-box" title="Click or Press F for Fullscreen">
+                  <img src="/stream.mjpg" class="stream-img" id="stream-feed" alt="Camera Stream" />
+                </div>
+
+                <div class="btn-group">
+                  <button class="btn btn-primary" id="btn-fullscreen" onclick="toggleFullscreen()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    <span>Fullscreen Mode (F)</span>
+                  </button>
+                  <a class="btn" href="/snapshot.jpg" target="_blank">View Snapshot</a>
+                  <a class="btn" href="/stream.mjpg" target="_blank">Direct MJPEG Stream</a>
+                  <a class="btn" href="http://localhost:8080/dom.html" style="border-color:#10b981; color:#34d399;">Launch Digital Twin UI</a>
+                </div>
+              </div>
+
+              <script>
+                function toggleFullscreen() {{
+                  const box = document.getElementById('stream-box');
+                  if (!document.fullscreenElement) {{
+                    if (box.requestFullscreen) box.requestFullscreen();
+                    else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+                  }} else {{
+                    if (document.exitFullscreen) document.exitFullscreen();
+                  }}
+                }}
+                document.getElementById('stream-box').addEventListener('dblclick', toggleFullscreen);
+                window.addEventListener('keydown', (e) => {{
+                  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+                }});
+              </script>
+            </body>
+            </html>"""
             self.wfile.write(html.encode())
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):

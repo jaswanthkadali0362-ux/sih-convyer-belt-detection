@@ -39,7 +39,7 @@ export const DEFAULT_CREW_ROSTER = [
   {
     id: 'worker_elena',
     name: 'Elena Rostova',
-    role: 'Vision & Optical Sensor Specialist',
+    role: 'Vision & Optical Specialist',
     station: 'Mid-Incline Optical Scan Deck',
     sensorKey: 'misalignment_st02',
     preset: 'orange_orange',

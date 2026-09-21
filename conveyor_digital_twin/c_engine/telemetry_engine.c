@@ -25,21 +25,21 @@ void telemetry_init(ConveyorSystemState_t* state) {
     memset(state, 0, sizeof(ConveyorSystemState_t));
 
     /* 1. Misalignment Channels (Limits matched to ABB standard) */
-    init_channel(&state->misalignment_st01, 52.33f, 40.0f, 50.0f); /* Current 52.33 -> Alert (Red) */
-    init_channel(&state->misalignment_st02, 72.33f, 70.0f, 75.0f); /* Current 72.33 -> Warning (Yellow) */
+    init_channel(&state->misalignment_st01, 2.80f, 40.0f, 50.0f);  /* Current 2.80 -> Healthy (Green) */
+    init_channel(&state->misalignment_st02, 4.30f, 70.0f, 75.0f);  /* Current 4.30 -> Healthy (Green) */
 
     /* 2. Weigh Station & Load Sensor (HX711 Strain Gauge ST01 / LOAD_CELL_1.stl) */
-    init_channel(&state->load_sensor_st01, 0.0f, 45.0f, 55.0f);   /* Frame joint stress baseline 0.0 kg -> Healthy (Green) */
+    init_channel(&state->load_sensor_st01, 0.41f, 45.0f, 55.0f);   /* Frame joint stress baseline 0.41 kg -> Healthy (Green) */
     init_channel(&state->thickness_st01, 22.81f, 15.0f, 10.0f);    /* Belt cover thickness: 22.81 mm */
-    init_channel(&state->load_cell_st01, 145.2f, 250.0f, 320.0f);
+    init_channel(&state->load_cell_st01, 0.0f, 250.0f, 320.0f);
 
     /* 3. Tachometer Speeds */
-    init_channel(&state->speed_tail_st01, 2.94f, 2.0f, 1.5f);
-    init_channel(&state->speed_mid_st02, 2.96f, 2.0f, 1.5f);      /* Current 2.96 -> Healthy (Green) */
-    init_channel(&state->speed_head_drive, 3.08f, 3.5f, 4.0f);    /* Current 3.08 -> Healthy (Green) */
+    init_channel(&state->speed_tail_st01, 0.84f, 2.0f, 1.5f);
+    init_channel(&state->speed_mid_st02, 0.85f, 2.0f, 1.5f);      /* Current 0.85 -> Healthy (Green) */
+    init_channel(&state->speed_head_drive, 0.88f, 3.5f, 4.0f);    /* Current 0.88 -> Healthy (Green) */
 
     /* 4. Bearing Thermal */
-    init_channel(&state->temp_bearing_st01, 45.5f, 65.0f, 80.0f); /* Current 45.5 -> Healthy (Green) */
+    init_channel(&state->temp_bearing_st01, 26.5f, 65.0f, 80.0f); /* Current 26.5 -> Healthy (Green) */
 
     /* 5. Surface Rip / Damage */
     state->damage_rip_count = 1;

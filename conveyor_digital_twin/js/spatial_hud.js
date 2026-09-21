@@ -29,7 +29,7 @@ export class SpatialHUD {
     this.offsets = {
       // Co-located Intake / Chute Sensors
       damage_st01:       { dx: 0,   dy: -55, label: 'Damage ST01' },
-      load_sensor_st01:  { dx: 80,  dy: -38, label: 'Load Sensor ST01' },
+      load_sensor_st01:  { dx: 80,  dy: -38, label: 'Load ST01' },
       misalignment_st01: { dx: -78, dy: -42, label: 'Misalignment ST01' },
       thickness_st01:    { dx: 80,  dy: 26,  label: 'Thickness ST01' },
 
@@ -38,7 +38,7 @@ export class SpatialHUD {
       vibration_tail:    { dx: -95, dy: 26,  label: 'Tail Vibration' },
 
       // Mid-Conveyor Idler Stations (4-quadrant layout)
-      speed_mid_02:      { dx: -65, dy: -24, label: 'Speed Sensor 02' },
+      speed_mid_02:      { dx: -65, dy: -24, label: 'Speed 02' },
       temp_bearing_01:   { dx: 65,  dy: -24, label: 'Temperature ST01' },
       vibration_mid1:    { dx: -50, dy: 24,  label: 'Idler 1 Vib' },
       vibration_mid2:    { dx: 50,  dy: 24,  label: 'Idler 2 Vib' },

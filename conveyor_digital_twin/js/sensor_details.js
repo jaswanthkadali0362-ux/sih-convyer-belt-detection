@@ -33,10 +33,10 @@ export class SensorDetailsDrawer {
         <div class="sensor-fullscreen-header">
           <div class="drawer-title-group">
             <div style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; color: var(--primary-blue, #00f0ff); text-transform: uppercase; margin-bottom: 2px;">
-              ORE SENTINELS 20Hz SENSOR DAQ // INSPECTION COCKPIT
+              CONVEYOR CV-101 // TELEMETRY &amp; DIAGNOSTICS
             </div>
             <h2 id="drawer-sensor-title" style="font-size: 1.45rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 12px;">
-              Sensor Details
+              Station Telemetry
             </h2>
             <p id="drawer-sensor-desc" style="font-size: 0.84rem; color: #64748b; margin: 4px 0 0 0;">
               Physical Conveyor Hardware Component Telemetry
@@ -132,7 +132,7 @@ export class SensorDetailsDrawer {
                 Component Architecture &amp; DAQ Node Specs
               </h4>
               <table class="threshold-table" style="width: 100%; font-size: 0.8rem;">
-                <tr><td style="color: #64748b; width: 45%;">Sensor Tag / Channel</td><td id="drawer-sensor-tag" style="font-family: var(--font-mono); font-weight: 700;">--</td></tr>
+                <tr><td style="color: #64748b; width: 45%;">Tag / Channel</td><td id="drawer-sensor-tag" style="font-family: var(--font-mono); font-weight: 700;">--</td></tr>
                 <tr><td style="color: #64748b;">Physical CAD Mesh</td><td id="drawer-cad-mesh" style="font-family: var(--font-mono);">--</td></tr>
                 <tr><td style="color: #64748b;">Location / Station</td><td id="drawer-sensor-loc">Conveyor Return &amp; Drive Strand</td></tr>
                 <tr><td style="color: #64748b;">Bus Interface Protocol</td><td>Modbus TCP / RS-485 USB-DAQ Bus</td></tr>
@@ -157,7 +157,7 @@ export class SensorDetailsDrawer {
                   Acknowledge Alarm
                 </button>
                 <button id="btn-drawer-zero" class="tool-btn" style="justify-content: center; height: 38px;">
-                  Zero-Calibrate Sensor
+                  Zero-Calibrate
                 </button>
                 <button id="btn-drawer-export" class="tool-btn" style="justify-content: center; height: 38px;">
                   Export CSV (60 Pts)
@@ -221,7 +221,7 @@ export class SensorDetailsDrawer {
         const calOffset = document.getElementById('drawer-cal-offset');
         if (calOffset) calOffset.textContent = 'Offset -' + (this.historyData[this.historyData.length - 1] || '0.00');
         setTimeout(() => {
-          zeroBtn.textContent = 'Zero-Calibrate Sensor';
+          zeroBtn.textContent = 'Zero-Calibrate';
           zeroBtn.style.color = '';
         }, 2500);
       });
@@ -313,7 +313,7 @@ export class SensorDetailsDrawer {
 
     const tagName = sensorData.tag || key;
     if (titleEl) titleEl.textContent = tagName;
-    if (descEl) descEl.textContent = sensorData.description || 'Industrial Physical Telemetry Sensor';
+    if (descEl) descEl.textContent = sensorData.description || 'Industrial Physical Telemetry';
     if (tagEl) tagEl.textContent = `${tagName} [${key}]`;
 
     const val = Number(sensorData.val !== undefined ? sensorData.val : 0);
@@ -525,11 +525,11 @@ export class SensorDetailsDrawer {
 
   exportCSV() {
     if (!this.historyData.length) return;
-    let csv = `Sample_Index,Sensor_Tag,Value,Unit,Timestamp\n`;
+    let csv = `Sample_Index,Tag,Value,Unit,Timestamp\n`;
     const now = Date.now();
     this.historyData.forEach((val, idx) => {
       const t = new Date(now - (this.historyData.length - 1 - idx) * 50).toISOString();
-      csv += `${idx + 1},${this.currentSensorKey || 'Sensor'},${val},${this.unit},${t}\n`;
+      csv += `${idx + 1},${this.currentSensorKey || 'Channel'},${val},${this.unit},${t}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });

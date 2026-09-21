@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ore Sentinels | Autonomous Conveyor Digital Twin &amp; Rupture Prediction</title>
-  <meta name="description" content="Ore Sentinels: Autonomous 3D digital twin condition monitoring and optical rupture prediction system for industrial conveyor installations.">
+  <title>BELTXENCE | Smart Conveyor Monitoring</title>
+  <meta name="description" content="BELTXENCE - Industrial Single-Screen Conveyor Telemetry & Optical Integrity Supervisory Dashboard">
 
-  <!-- MotionSites Typography: Plus Jakarta Sans & Instrument Serif -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/twin.css?v=ore_sentinels_v1">
+  <link rel="stylesheet" href="css/twin.css?v=industrial_single_screen_v1">
 
   <!-- Three.js ES Module Import Map -->
   <script type="importmap">
@@ -24,256 +23,446 @@
   </script>
 </head>
 <body>
-  <div class="app-viewport">
+  <div class="industrial-app-container">
     
-    <!-- Top Brand & Controls Header (MotionSites Floating Liquid Glass) -->
-    <header class="top-header liquid-glass liquid-glass-glow">
-      <div class="brand-wrapper">
-        <div class="brand-mark ore-sentinel-emblem">
-          <!-- Ore Sentinels Kinetic Radar & Shield Emblem -->
-          <svg viewBox="0 0 32 32" fill="none" width="32" height="32">
-            <defs>
-              <linearGradient id="oreGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#6366f1"/>
-                <stop offset="0.5" stop-color="#00f0ff"/>
-                <stop offset="1" stop-color="#10b981"/>
-              </linearGradient>
-            </defs>
-            <rect width="32" height="32" rx="8" fill="#070b14" stroke="rgba(255,255,255,0.15)" stroke-width="1.2"/>
-            <path d="M16 5 L26 9.5 V16.5 C26 23 16 27.5 16 27.5 C16 27.5 6 23 6 16.5 V9.5 Z" stroke="url(#oreGrad)" stroke-width="1.8" fill="rgba(99, 102, 241, 0.12)"/>
-            <path d="M11 16 L14.5 19.5 L21 13" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="16" cy="16.5" r="1.5" fill="#ffffff"/>
-          </svg>
-        </div>
-        <h1 class="system-title">
-          Ore <span class="brand-sentinel">Sentinels</span>
-          <span class="sub-title"><span class="editorial-accent">Autonomous</span> Conveyor Twin &bull; 20Hz Telemetry</span>
-        </h1>
+    <!-- Top Professional Industrial Header -->
+    <header class="industrial-header">
+      <div class="header-brand">
+        <h1 class="brand-title">BELTXENCE</h1>
+        <span class="brand-sub">Smart Conveyor Monitoring</span>
       </div>
 
-      <!-- Header Action Controls -->
-      <div class="header-right">
-        <!-- Autonomous Drone Inspection Tour -->
-        <button id="btn-drone-tour" class="header-futuristic-btn" title="Start Autonomous 3D Drone Inspection Patrol">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="m19 19-3-3"/><path d="m5 19 3-3"/><rect x="7" y="10" width="10" height="7" rx="2"/></svg>
-          <span id="drone-tour-btn-label">🎥 Drone Tour</span>
+      <div class="header-status-area">
+        <div class="header-sys-status" id="sys-status-badge">
+          <span class="status-dot-solid"></span>
+          <span>System Online</span>
+        </div>
+
+        <!-- ESP32 Device Connection Pill -->
+        <div class="header-device-badge" id="header-esp32-badge" title="ESP32 Telemetry Node (COM19 @ 115200 Baud). Click for Console.">
+          <span class="status-dot-solid" id="esp32-pill-led" style="background:#10b981;"></span>
+          <span id="esp32-pill-status">ESP32: CONNECTED (COM19)</span>
+          <span id="esp32-pill-stats" style="display: none;"><span id="esp32-pill-rx">0 RX</span><span id="esp32-pill-temp">--</span><span id="esp32-pill-vib">--</span></span>
+          <button id="btn-open-serial-monitor" class="header-ctrl-btn" style="padding: 1px 6px; font-size: 0.65rem; margin-left: 4px;">Console</button>
+        </div>
+
+        <!-- Live Clock -->
+        <div class="header-clock-box" id="header-clock">--:--:--</div>
+
+        <!-- Theme Toggle Switch -->
+        <button id="btn-theme-toggle" class="header-ctrl-btn" title="Toggle Dark / Light Theme">
+          <svg id="theme-icon-sun" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display: none;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+          <svg id="theme-icon-moon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <span id="theme-toggle-label">Theme</span>
         </button>
 
-        <!-- Industrial Settings Button -->
-        <button id="btn-header-settings" class="header-settings-btn" title="Open Ore Sentinels Settings &amp; Sensor Thresholds">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>Settings</span>
-        </button>
-
-        <!-- 7-Day History Button -->
-        <button id="btn-header-history" class="header-history-btn" title="View 7-Day Wear &amp; Rupture Analytics">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span>7-Day History</span>
-        </button>
+        <!-- Secondary Navigation / Tools -->
+        <button id="btn-header-history" class="header-ctrl-btn" title="View 7-Day Wear & Degradation History">History</button>
+        <button id="btn-header-settings" class="header-ctrl-btn" title="Industrial System Thresholds & Config">Settings</button>
+        <button id="btn-drone-tour" class="header-ctrl-btn" style="display:none;" title="Guided 3D Tour"><span id="drone-tour-btn-label">Tour</span></button>
       </div>
     </header>
 
-    <!-- Left Industrial Navigation Rail (MotionSites Glass) -->
-    <nav class="left-rail liquid-glass">
-      <button class="rail-item active" data-nav="home" title="System Overview">
-        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span>Overview</span>
-      </button>
-
-      <button class="rail-item" data-nav="all_sensors" id="rail-all-sensors" title="Display All 13 Sensors on Conveyor">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-        <span>All Sensors</span>
-      </button>
-
-      <button class="rail-item" data-nav="analytics" title="7-Day Wear Trends & Degradation Curves">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>History</span>
-      </button>
-
-      <button class="rail-item" data-nav="misalignment" title="Lateral Misalignment & Edge Drift">
-        <svg viewBox="0 0 24 24"><path d="M4 12h16"/><path d="m8 8-4 4 4 4"/><path d="m16 8 4 4-4 4"/></svg>
-        <span>Tracking</span>
-      </button>
-
-      <button class="rail-item" data-nav="load_sensor" title="HX711 Load Cell - Frame Joint Stress (Nominal 0.0 kg)">
-        <svg viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-        <span>Load Cell</span>
-      </button>
-
-      <button class="rail-item" data-nav="thickness" title="Belt Rubber Carcass Cover Thickness">
-        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        <span>Thickness</span>
-      </button>
-
-      <button class="rail-item" data-nav="speed" title="Tachometers & Linear Velocity">
-        <svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-        <span>Speed</span>
-      </button>
-
-      <button class="rail-item" data-nav="vision" title="AI Optical Rupture Scanner">
-        <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <span>Damage</span>
-      </button>
-
-      <button class="rail-item" data-nav="temperature" title="Drive Bearing Thermal State">
-        <svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-        <span>Thermal</span>
-      </button>
-
-      <button class="rail-item" data-nav="settings" title="Industrial Settings &amp; Hardware Ports">
-        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span>Settings</span>
-      </button>
-
-      <div class="rail-spacer"></div>
-
-      <button class="rail-item" data-nav="alarms" title="Active Alarm Log">
-        <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-        <span>Alarms</span>
-      </button>
-    </nav>
-
-    <!-- Central 3D Canvas Stage -->
-    <main class="canvas-container">
-      <!-- Loading Status Overlay -->
-      <div id="loading-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10, 15, 29, 0.85); backdrop-filter: blur(16px); padding: 18px 28px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 14px; z-index: 45; font-weight: 600; font-size: 0.9rem; color: #ffffff;">
-        <div style="width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #00f0ff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-        <span id="loading-text">Loading Ore Sentinels CAD &amp; Spatial Kinematics...</span>
-      </div>
-
-      <!-- Three.js Render Target Canvas -->
-      <canvas id="webgl-canvas"></canvas>
-
-      <!-- SVG Overlay for Leader Lines -->
-      <svg id="svg-hud-lines"></svg>
-
-      <!-- Floating 3D Spatial HUD Callout Pills Container -->
-      <div id="hud-overlay-container"></div>
-
-      <!-- Cinematic Camera Toolbar (Top-Left) -->
-      <div class="camera-toolbar liquid-glass">
-        <button id="btn-view-iso" class="tool-btn active">Overview</button>
-        <button id="btn-view-head" class="tool-btn">Head Drive</button>
-        <button id="btn-view-tail" class="tool-btn">Tensioner</button>
-        <button id="btn-view-scan" class="tool-btn">Intake &amp; Laser</button>
-        <button id="btn-view-side" class="tool-btn">Profile</button>
-        <button id="btn-view-top" class="tool-btn">Plan</button>
-        <button id="btn-toggle-spin" class="tool-btn">Pause</button>
-      </div>
-
-      <!-- AI Optical Profilometer & Rupture Scanner Card (Top-Right) -->
-      <div class="ai-vision-card liquid-glass">
-        <div class="ai-card-header">
-          <div class="ai-card-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-            <span>Optical Inspection · Cam 01</span>
+    <!-- Main Single-Screen Dashboard Body -->
+    <main class="industrial-dashboard-grid">
+      
+      <!-- Top Section: Belt Health + 10 Parameter Cards -->
+      <section class="top-parameters-section">
+        
+        <!-- Belt Health Score Card -->
+        <div class="belt-health-card" id="belt-health-panel">
+          <div class="health-label">BELT HEALTH</div>
+          <div class="health-val-row">
+            <span class="health-score-number" id="belt-health-val">94%</span>
+            <span class="health-status-tag status-healthy" id="belt-health-tag">HEALTHY</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <button id="btn-expand-vision" class="ai-expand-btn" title="Open Fullscreen Machine Vision Diagnostics Console">Console</button>
-            <span id="ai-cam-fps-badge" class="ai-scan-badge">60 FPS</span>
+          <div class="health-meter-track">
+            <div class="health-meter-bar" id="belt-health-meter" style="width: 94%;"></div>
+          </div>
+          <div class="health-calc-caption">Calculated weighted index (10 parameters)</div>
+        </div>
+
+        <!-- 10 Main Parameter Cards Grid -->
+        <div class="parameters-grid">
+          
+          <!-- 1. Temperature -->
+          <div class="param-card" id="card-temperature">
+            <div class="param-card-top">
+              <span class="param-name">Temperature</span>
+              <span class="param-status-badge status-normal" id="status-temperature">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-temperature">27.4</span><span class="param-unit">°C</span></div>
+            <div class="param-card-range">Normal range: 20–40 °C</div>
+          </div>
+
+          <!-- 2. Vibration -->
+          <div class="param-card" id="card-vibration">
+            <div class="param-card-top">
+              <span class="param-name">Vibration</span>
+              <span class="param-status-badge status-normal" id="status-vibration">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-vibration">0.42</span><span class="param-unit">m/s²</span></div>
+            <div class="param-card-range">Normal range: 0–2.0 m/s²</div>
+          </div>
+
+          <!-- 3. Load -->
+          <div class="param-card" id="card-load">
+            <div class="param-card-top">
+              <span class="param-name">Load</span>
+              <span class="param-status-badge status-normal" id="status-load">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-load">0.48</span><span class="param-unit">kg</span></div>
+            <div class="param-card-range">Normal range: 0–5 kg</div>
+          </div>
+
+          <!-- 4. Thickness -->
+          <div class="param-card" id="card-thickness">
+            <div class="param-card-top">
+              <span class="param-name">Thickness</span>
+              <span class="param-status-badge status-normal" id="status-thickness">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-thickness">22.1</span><span class="param-unit">mm</span></div>
+            <div class="param-card-range">Normal range: 18–25 mm</div>
+          </div>
+
+          <!-- 5. Speed -->
+          <div class="param-card" id="card-speed">
+            <div class="param-card-top">
+              <span class="param-name">Speed</span>
+              <span class="param-status-badge status-normal" id="status-speed">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-speed">0.86</span><span class="param-unit">m/s</span></div>
+            <div class="param-card-range">Normal range: 0.5–2.0 m/s</div>
+          </div>
+
+          <!-- 6. Current -->
+          <div class="param-card" id="card-current">
+            <div class="param-card-top">
+              <span class="param-name">Current</span>
+              <span class="param-status-badge status-normal" id="status-current">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-current">2.3</span><span class="param-unit">A</span></div>
+            <div class="param-card-range">Normal range: 0–5 A</div>
+          </div>
+
+          <!-- 7. Misalignment -->
+          <div class="param-card" id="card-misalignment">
+            <div class="param-card-top">
+              <span class="param-name">Misalignment</span>
+              <span class="param-status-badge status-normal" id="status-misalignment">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-misalignment">3.5</span><span class="param-unit">mm</span></div>
+            <div class="param-card-range">Normal range: 0–10 mm</div>
+          </div>
+
+          <!-- 8. Bearing Temperature -->
+          <div class="param-card" id="card-bearing-temp">
+            <div class="param-card-top">
+              <span class="param-name">Bearing Temperature</span>
+              <span class="param-status-badge status-normal" id="status-bearing-temp">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-bearing-temp">28.7</span><span class="param-unit">°C</span></div>
+            <div class="param-card-range">Normal range: 20–60 °C</div>
+          </div>
+
+          <!-- 9. Wear Loss -->
+          <div class="param-card" id="card-wear-loss">
+            <div class="param-card-top">
+              <span class="param-name">Wear Loss</span>
+              <span class="param-status-badge status-normal" id="status-wear-loss">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-wear-loss">0.06</span><span class="param-unit">mm</span></div>
+            <div class="param-card-range">Normal range: 0–0.20 mm</div>
+          </div>
+
+          <!-- 10. Wear Rate -->
+          <div class="param-card" id="card-wear-rate">
+            <div class="param-card-top">
+              <span class="param-name">Wear Rate</span>
+              <span class="param-status-badge status-normal" id="status-wear-rate">● NORMAL</span>
+            </div>
+            <div class="param-card-val"><span id="val-wear-rate">0.002</span><span class="param-unit" style="font-size:0.65rem;">mm/day</span></div>
+            <div class="param-card-range">Normal range: 0–0.01 mm/day</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Middle Section: Live Vision & Inspection + Telemetry Chart / 3D Twin View -->
+      <section class="middle-monitoring-section">
+        
+        <!-- Left Column: Live Conveyor Vision + Vision Inspection -->
+        <div class="vision-monitoring-panel">
+          
+          <!-- Live Conveyor Vision Feed Card -->
+          <div class="camera-feed-card">
+            <div class="card-panel-header">
+              <span class="panel-heading">LIVE CONVEYOR VISION</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="feed-badge-status" id="vision-feed-badge">CAMERA OFFLINE / DEMO FEED</span>
+                <button id="btn-index-cam-fullscreen" class="ai-expand-btn ai-fullscreen-btn" title="Open Fullscreen Live Camera (Press F or Esc)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: -1px; margin-right: 3px;"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  <span>Fullscreen</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="camera-stream-viewport" id="cam-viewport-box" style="position:relative;">
+              <img id="live-cam-img" src="/api/camera/stream.mjpg" alt="Conveyor Stream" style="display:none;" />
+              <div class="camera-fallback-display" id="cam-fallback-ui">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="cam-icon">
+                  <path d="m16 16 4.553 2.276A1 1 0 0 0 22 17.382V6.618a1 1 0 0 0-1.447-.894L16 8v8z"/>
+                  <rect x="2" y="6" width="14" height="12" rx="2"/>
+                </svg>
+                <div class="cam-offline-title">CAMERA OFFLINE / DEMO FEED</div>
+                <div class="cam-offline-sub">Ready for ESP32-CAM &bull; USB Camera &bull; RTSP &bull; Uploaded Video</div>
+              </div>
+              <button id="btn-quick-index-fullscreen" class="viewport-fullscreen-pill" title="Enter Fullscreen Mode (F)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <span>⛶ Fullscreen</span>
+              </button>
+            </div>
+
+            <div class="camera-footer-controls">
+              <span class="feed-source-label">Source: Logi C270 HD WebCam</span>
+              <div class="cam-source-btns">
+                <button id="btn-fetch-camera" class="cam-toggle-btn active" style="background:#0284c7; color:#fff; font-weight:700;">Fetch Camera</button>
+                <button id="btn-cam-auto" class="cam-toggle-btn">Live Stream</button>
+                <button id="btn-cam-snapshot" class="cam-toggle-btn">Snapshot</button>
+                <button id="btn-cam-demo" class="cam-toggle-btn">Offline View</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Vision Inspection Checklist Card -->
+          <div class="vision-inspection-card">
+            <div class="card-panel-header">
+              <span class="panel-heading">VISION INSPECTION</span>
+              <span class="demo-tag">VISION DEMO</span>
+            </div>
+            <div class="inspection-items-list">
+              <div class="inspection-row">
+                <span class="insp-label">Belt Surface</span>
+                <span class="insp-val status-pill-normal" id="insp-surface">NORMAL</span>
+              </div>
+              <div class="inspection-row">
+                <span class="insp-label">Joint Condition</span>
+                <span class="insp-val status-pill-normal" id="insp-joint">NORMAL</span>
+              </div>
+              <div class="inspection-row">
+                <span class="insp-label">Surface Wear</span>
+                <span class="insp-val status-pill-normal" id="insp-wear">NORMAL</span>
+              </div>
+              <div class="inspection-row">
+                <span class="insp-label">Crack / Tear</span>
+                <span class="insp-val status-pill-normal" id="insp-tear">NOT DETECTED</span>
+              </div>
+              <div class="inspection-row">
+                <span class="insp-label">Foreign Object</span>
+                <span class="insp-val status-pill-normal" id="insp-foreign">NOT DETECTED</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Telemetry Trend Graph & Embedded 3D Digital Twin View -->
+        <div class="telemetry-chart-panel">
+          <div class="card-panel-header">
+            <div class="panel-title-group">
+              <span class="panel-heading" id="panel-view-heading">LIVE TELEMETRY TRENDS</span>
+              <div class="view-switcher-tabs">
+                <button id="btn-tab-chart" class="view-tab-btn active">Live Chart</button>
+                <button id="btn-tab-3d" class="view-tab-btn">3D Digital Twin</button>
+              </div>
+            </div>
+            <div class="timeframe-selector" id="chart-tf-controls">
+              <button class="tf-btn active" data-tf="1h">1H</button>
+              <button class="tf-btn" data-tf="6h">6H</button>
+              <button class="tf-btn" data-tf="24h">24H</button>
+            </div>
+          </div>
+
+          <!-- Chart View Container -->
+          <div class="chart-canvas-wrapper" id="trend-chart-wrapper">
+            <div class="chart-legend-row">
+              <span class="legend-chip"><span class="legend-color" style="background:#0284c7;"></span> Temp (°C)</span>
+              <span class="legend-chip"><span class="legend-color" style="background:#f59e0b;"></span> Vibration (m/s²)</span>
+              <span class="legend-chip"><span class="legend-color" style="background:#10b981;"></span> Load (kg)</span>
+              <span class="legend-chip"><span class="legend-color" style="background:#8b5cf6;"></span> Speed (m/s)</span>
+              <span class="legend-chip"><span class="legend-color" style="background:#06b6d4;"></span> Current (A)</span>
+              <span class="legend-chip"><span class="legend-color" style="background:#ec4899;"></span> Thickness (mm)</span>
+            </div>
+            <canvas id="telemetry-trends-canvas"></canvas>
+          </div>
+
+          <!-- Embedded 3D Viewport (Preserving Three.js Scene) -->
+          <div class="embedded-3d-wrapper" id="twin-3d-wrapper" style="display:none;">
+            <!-- Three.js Render Canvas -->
+            <canvas id="webgl-canvas"></canvas>
+            <!-- Camera View Toolbar -->
+            <div class="camera-toolbar">
+              <button id="btn-view-iso" class="tool-btn active">Overview</button>
+              <button id="btn-view-head" class="tool-btn">Head</button>
+              <button id="btn-view-tail" class="tool-btn">Tail</button>
+              <button id="btn-view-scan" class="tool-btn">Scanner</button>
+              <button id="btn-view-side" class="tool-btn">Side</button>
+              <button id="btn-view-top" class="tool-btn">Top</button>
+              <button id="btn-toggle-spin" class="tool-btn">Pause</button>
+            </div>
+            <div id="hud-overlay-container"></div>
+            <svg id="svg-hud-lines" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>
+            <div id="loading-overlay" style="display:none;"></div>
+            <span id="loading-text" style="display:none;"></span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Bottom Section: Recent Telemetry Table + Recent Events -->
+      <section class="bottom-data-section">
+        
+        <!-- Recent Telemetry Table -->
+        <div class="telemetry-table-card">
+          <div class="card-panel-header">
+            <span class="panel-heading">RECENT TELEMETRY</span>
+            <span class="table-sub-note">Live single-source stream data</span>
+          </div>
+          <div class="table-scroll-container">
+            <table class="industrial-table" id="telemetry-data-table">
+              <thead>
+                <tr>
+                  <th>TIME</th>
+                  <th>TEMP (°C)</th>
+                  <th>VIBRATION (m/s²)</th>
+                  <th>LOAD (kg)</th>
+                  <th>THICKNESS (mm)</th>
+                  <th>SPEED (m/s)</th>
+                  <th>CURRENT (A)</th>
+                  <th>MISALIGN (mm)</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-table-body">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <!-- Camera Source Switcher Bar -->
-        <div class="ai-source-toggle-group">
-          <button id="btn-cam-factory" class="ai-source-btn active" title="Virtual 3D Camera Sensor (/conveyor/camera/image_raw)">
-            <span class="rec-pulse-dot" style="display: inline-block; background: #10b981;"></span>
-            <span>Virtual Cam</span>
-          </button>
-          <button id="btn-cam-webcam" class="ai-source-btn" title="Stream live video from your real physical webcam/camera">
-            <span class="rec-pulse-dot" id="cam-rec-dot" style="display: none;"></span>
-            <span>Real Cam</span>
-          </button>
-        </div>
-
-        <!-- Virtual 3D Camera Angles & Sensor Modes -->
-        <div class="ai-filter-group" style="margin-top: 4px; gap: 3px;">
-          <button id="btn-lens-overhead" class="ai-filter-pill active" title="Virtual Sensor Bracket (Overhead Carry Run)">Overhead</button>
-          <button id="btn-lens-nadir" class="ai-filter-pill" title="Top-Down Nadir (Laser Profilometer Cross-Section)">Top-Down</button>
-          <button id="btn-lens-discharge" class="ai-filter-pill" title="Head Drive Drum Discharge Gantry">Discharge</button>
-          <button id="btn-filter-yolo" class="ai-filter-pill active" title="Defect Detection Bounding Box">Defect Overlay</button>
-          <button id="btn-filter-thermal" class="ai-filter-pill" title="Virtual Depth Camera / False-Color LUT">Depth</button>
-        </div>
-
-        <!-- Live Camera Stream Canvas Box (Virtual 3D Camera Sensor + CV Telemetry Overlay) -->
-        <div class="ai-canvas-box" style="position: relative; width: 320px; height: 175px; overflow: hidden; border-radius: 6px; background: #040810;">
-          <canvas id="gazebo-cam-canvas" width="320" height="175" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 1; display: block;"></canvas>
-          <canvas id="ai-vision-canvas" width="320" height="175" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2; pointer-events: auto; cursor: pointer;" title="Click to open Fullscreen Machine Vision Diagnostics Console"></canvas>
-        </div>
-
-        <!-- Active Source & Device Info -->
-        <div class="ai-cam-info-bar">
-          <span id="ai-cam-device-label">Stream: /conveyor/cam_01/raw</span>
-          <span id="ai-cam-status-label" style="color: #10b981; font-weight: 700;">LIVE FEED</span>
-        </div>
-
-        <div>
-          <div class="ai-metric-row">
-            <span style="color: var(--text-muted); font-size: 0.68rem;">RUPTURE RISK INDEX:</span>
-            <span id="ai-rupture-risk-val" style="color: #10b981; font-weight: 800;">0.04%</span>
+        <!-- Recent Events / Alarm Log -->
+        <div class="recent-events-card">
+          <div class="card-panel-header">
+            <span class="panel-heading">RECENT EVENTS</span>
+            <span class="events-status-indicator">● ALL SYSTEMS NOMINAL</span>
           </div>
-          <div class="risk-progress-bar" style="margin-top: 4px;">
-            <div id="ai-rupture-risk-bar" class="risk-progress-fill"></div>
+          <div class="events-list-container" id="events-log-container">
+            <!-- Populated dynamically via JS -->
           </div>
         </div>
 
-        <div class="ai-metric-row" style="font-size: 0.67rem;">
-          <span style="color: var(--text-muted);">SPLICE INTEGRITY:</span>
-          <span style="color: #38bdf8; font-weight: 700;">Joint #40 · Nominal (99.4%)</span>
-        </div>
+      </section>
 
-        <!-- Hidden Video Element for Real Camera Processing -->
-        <video id="vision-webcam-video" playsinline muted autoplay style="display: none;"></video>
-      </div>
-
-      <!-- Conveyor Belt Health Donut Widget (Bottom-Right) -->
-      <div class="health-kpi-card liquid-glass">
-        <div class="health-kpi-title">Conveyor Belt Health</div>
-        <svg class="health-donut-svg" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="44" stroke="rgba(255,255,255,0.08)" stroke-width="20" fill="none" />
-          <circle id="donut-seg-optimal" class="donut-segment donut-optimal" cx="60" cy="60" r="44" />
-          <circle id="donut-seg-warning" class="donut-segment donut-warning" cx="60" cy="60" r="44" />
-          <circle id="donut-seg-critical" class="donut-segment donut-critical" cx="60" cy="60" r="44" />
-        </svg>
-        <div class="health-legend">
-          <div class="legend-item"><span class="legend-dot" style="background: var(--status-green);"></span><span id="legend-val-opt">70.0%</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--status-yellow);"></span><span id="legend-val-warn">10.0%</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background: var(--status-red);"></span><span id="legend-val-crit">20.0%</span></div>
-        </div>
-      </div>
-
-      <!-- Interactive Day-by-Day Historical Timeline Scrubber Bar -->
-      <div id="timeline-scrubber-bar" class="timeline-scrubber-bar liquid-glass"></div>
-
-      <!-- Sliding Detail Inspection Drawer -->
-      <aside id="sensor-inspector-drawer" class="sensor-drawer"></aside>
     </main>
-
-    <!-- Bottom Industrial Alert Marquee -->
-    <footer class="bottom-ticker liquid-glass">
-      <div id="ticker-timestamp" class="ticker-timestamp">Thursday, April 22, 2021 11:27:57 AM</div>
-      <div id="ticker-banner-text" class="ticker-alert-banner">Misalignment ST02 above the alert limit (> 71.199997 mm)</div>
-      <div id="ticker-tag-text" class="ticker-alert-tag">MisST02Attention</div>
-    </footer>
 
   </div>
 
-  <!-- 7-Day Daily Wear & Rupture Prediction Analytics Modal Container -->
+  <!-- Retained Hidden Elements for Sub-Components & Modals -->
+  <aside id="sensor-inspector-drawer" class="sensor-drawer" style="display:none;"></aside>
   <div id="analytics-modal-root" class="analytics-modal-root"></div>
-
-  <!-- Ore Sentinels Machine Vision Diagnostics Console Modal Container -->
   <div id="vision-console-modal-root" class="analytics-modal-root"></div>
-
-  <!-- Industrial Settings & Hardware Configuration Modal Container -->
   <div id="settings-modal-root" class="analytics-modal-root"></div>
-
-  <!-- Stress Test & Rupture Simulator Modal Container -->
   <div id="simulator-modal-root" class="analytics-modal-root"></div>
-
-  <!-- Autonomous Drone Reconnaissance OSD Container -->
   <div id="drone-tour-osd" class="drone-tour-osd" style="display: none;"></div>
+  <div id="com19-modal-root" class="analytics-modal-root"></div>
+  <div id="timeline-scrubber-bar" style="display:none;"></div>
 
-  <!-- Boot Application -->
-  <script type="module" src="js/app.js?v=ore_sentinels_v2"></script>
+  <!-- Fallback/Legacy UI hooks to avoid JS null reference errors -->
+  <div style="display:none;">
+    <canvas id="gazebo-cam-canvas" width="320" height="175"></canvas>
+    <canvas id="ai-vision-canvas" width="320" height="175"></canvas>
+    <video id="vision-webcam-video" playsinline muted autoplay></video>
+    <div id="ticker-timestamp"></div>
+    <div id="ticker-banner-text"></div>
+    <div id="ticker-tag-text"></div>
+    <div id="donut-seg-optimal"></div>
+    <div id="donut-seg-warning"></div>
+    <div id="donut-seg-critical"></div>
+    <div id="legend-val-opt"></div>
+    <div id="legend-val-warn"></div>
+    <div id="legend-val-crit"></div>
+    <div id="header-status-pill"></div>
+    <div id="header-status-label"></div>
+    <div id="ai-rupture-risk-val"></div>
+    <div id="ai-rupture-risk-bar"></div>
+    <div id="ai-joints-count-val"></div>
+    <div id="ai-splice-joint-val"></div>
+  </div>
+
+  <!-- Dedicated Fullscreen Camera Theater Modal Overlay -->
+  <div id="camera-fullscreen-modal" class="camera-theater-overlay" style="display: none;">
+    <!-- Top HUD Bar -->
+    <div class="theater-hud-top">
+      <div class="theater-brand-group">
+        <div class="theater-live-badge">
+          <span class="theater-live-dot"></span>
+          <span id="theater-status-text">LIVE CAMERA STREAM</span>
+        </div>
+        <div class="theater-device-title" id="theater-cam-title">Logi C270 HD WebCam (1280x720)</div>
+      </div>
+      
+      <div class="theater-stats-group">
+        <div class="theater-stat-chip">
+          <span class="stat-k">FPS</span>
+          <span class="stat-v" id="theater-fps-val">30</span>
+        </div>
+        <div class="theater-stat-chip">
+          <span class="stat-k">TIME</span>
+          <span class="stat-v" id="theater-time-val">00:00:00.000</span>
+        </div>
+        <div class="theater-stat-chip">
+          <span class="stat-k">RUPTURE RISK</span>
+          <span class="stat-v" id="theater-risk-val" style="color: #00e676;">0.01%</span>
+        </div>
+        <button id="btn-theater-exit" class="theater-exit-btn" title="Exit Fullscreen (Esc or F)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <span>Exit Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Viewport Canvas/Video Stage -->
+    <div class="theater-stage" id="theater-stage">
+      <img id="theater-stream-img" src="/api/camera/stream.mjpg" alt="Conveyor Live Feed" class="theater-media" />
+      <video id="theater-stream-video" playsinline muted autoplay class="theater-media" style="display: none;"></video>
+      <canvas id="theater-hud-canvas" class="theater-hud-canvas"></canvas>
+    </div>
+
+    <!-- Floating Bottom Controls Bar -->
+    <div class="theater-dock">
+      <div class="theater-dock-group">
+        <button id="theater-btn-real" class="theater-dock-btn active">Real Camera</button>
+        <button id="theater-btn-virtual" class="theater-dock-btn">Virtual View</button>
+      </div>
+
+      <div class="theater-dock-group">
+        <button id="theater-btn-yolo" class="theater-dock-btn active">AI Reticle</button>
+        <button id="theater-btn-thermal" class="theater-dock-btn">Thermal LUT</button>
+      </div>
+
+      <div class="theater-dock-group">
+        <button id="theater-btn-aspect" class="theater-dock-btn" title="Toggle Aspect Ratio (Fit / Fill)">Fit: 16:9</button>
+        <button id="theater-btn-snapshot" class="theater-dock-btn action-snap" title="Take Instant Camera Snapshot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Snapshot</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boot Application Orchestrator -->
+  <script type="module" src="js/app.js?v=industrial_single_screen_v1"></script>
 </body>
 </html>

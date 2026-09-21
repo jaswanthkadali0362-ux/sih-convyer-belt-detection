@@ -41,9 +41,12 @@ def run_checks():
     hist = fetch_json("http://localhost:8080/api/telemetry/history")
     assert hist["total_days"] == 7, "Total days != 7"
     assert "summary" in hist
-    assert "cumulative_tonnage" in hist["summary"]
+    assert "cumulative_load" in hist["summary"]
+    assert hist["summary"]["cumulative_load"] == 0.48, f"Expected 0.48, got {hist['summary']['cumulative_load']}"
     assert len(hist["days"]) == 7
-    print(f"[PASS] /api/telemetry/history: {hist['summary']['cumulative_tonnage']:,} T total, {hist['summary']['total_wear_loss_mm']} mm wear loss, {hist['summary']['projected_days_remaining']} days remaining")
+    daily_loads = [d.get("load_kg", d.get("tonnage_tons", 0)) for d in hist["days"]]
+    assert round(sum(daily_loads), 2) == 0.48, f"Daily sum mismatch: {sum(daily_loads)}"
+    print(f"[PASS] /api/telemetry/history: {hist['summary']['cumulative_load']} KG total, daily loads: {daily_loads}")
 
     # 4. Test /api/telemetry/day for all 7 days
     for i in range(7):

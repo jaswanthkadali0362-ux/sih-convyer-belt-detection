@@ -19,16 +19,18 @@ export class DepthCameraVision {
     this.ctx = canvasElement ? canvasElement.getContext('2d', { willReadFrequently: true }) : null;
     this.onSwitchCameraPOV = onSwitchCameraPOV;
 
-    // Telemetry and physical stats
-    this.ruptureRisk = 0.0004; // 0.04% nominal
+    // Telemetry and physical stats (Calibrated for 2-joint prototype)
+    this.ruptureRisk = 0.0001; // 0.01% nominal
     this.damageCount = 0;
-    this.misalignmentDrift = 32.40;
-    this.beltSpeed = 2.96;
-    this.liveThickness = 22.79;
+    this.misalignmentDrift = 2.80;
+    this.beltSpeed = 0.85;
+    this.liveThickness = 22.81;
     this.liveLoad = 0;
-    this.liveTemp = 45.7;
-    this.liveVibration = 1.24;
-    this.liveMotorCurrent = 18.2;
+    this.liveTemp = 26.5;
+    this.liveVibration = 0.35;
+    this.liveMotorCurrent = 4.2;
+    this.numJoints = 2;
+    this.activeJointId = 2;
 
     // Moving virtual conveyor belt perspective simulation elements
     this.camCoalRocks = [];
@@ -110,9 +112,13 @@ export class DepthCameraVision {
     // 3. Setup UI bindings
     this.setupUIControls();
     this.setupConsoleModal();
+    this.setupTheaterModal();
 
     // 4. Start Render Loop
     this.startRenderLoop();
+
+    // 5. Automatically detect and connect camera feed
+    this.autoConnectCamera();
   }
 
   // ===========================================================================
@@ -122,6 +128,54 @@ export class DepthCameraVision {
   // UI CONTROLS & CAMERA SWITCHING
   // ===========================================================================
   setupUIControls() {
+    // Camera Fullscreen Buttons (Card Header, Viewport Pill, Index Card)
+    const cardFsBtn = document.getElementById('btn-card-fullscreen');
+    if (cardFsBtn) {
+      cardFsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openFullscreenTheater();
+      });
+    }
+
+    const quickFsBtn = document.getElementById('btn-quick-fullscreen');
+    if (quickFsBtn) {
+      quickFsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openFullscreenTheater();
+      });
+    }
+
+    const indexFsBtn = document.getElementById('btn-index-cam-fullscreen');
+    if (indexFsBtn) {
+      indexFsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openFullscreenTheater();
+      });
+    }
+
+    const quickIndexFsBtn = document.getElementById('btn-quick-index-fullscreen');
+    if (quickIndexFsBtn) {
+      quickIndexFsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.openFullscreenTheater();
+      });
+    }
+
+    // Global Hotkeys: F = Fullscreen, Esc = Exit, Space = Snapshot
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        this.toggleFullscreenTheater();
+      } else if (e.key === 'Escape' && this.isTheaterOpen) {
+        e.preventDefault();
+        this.closeFullscreenTheater();
+      } else if (e.key === ' ' && this.isTheaterOpen) {
+        e.preventDefault();
+        this.captureSnapshot();
+      }
+    });
+
     // Camera Source Buttons
     const btnWebcam = document.getElementById('btn-cam-webcam');
     const btnFactory = document.getElementById('btn-cam-factory');
@@ -269,54 +323,92 @@ export class DepthCameraVision {
   }
 
   // ===========================================================================
-  // WEBRTC HARDWARE CAMERA MANAGEMENT
+  // WEBRTC HARDWARE CAMERA MANAGEMENT (Logi C270 HD WebCam & USB UVC)
   // ===========================================================================
   async startWebcam() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      this.cameraPermissionError = 'Browser does not support camera API (getUserMedia)';
-      alert('Camera access is not supported in this environment. Using Factory NIR Stream.');
-      return false;
-    }
+    this.stopWebcam();
 
-    try {
-      // Release any existing tracks
-      this.stopWebcam();
+    // 1. Try Browser WebRTC with device enumeration (prioritizing Logi C270 / USB Camera)
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        let chosenDeviceId = null;
+        let chosenLabel = 'Logi C270 HD WebCam';
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoInputs = devices.filter(d => d.kind === 'videoinput');
+          // Look for Logi C270 or USB camera
+          const logi = videoInputs.find(d => /logi|c270|usb/i.test(d.label));
+          if (logi) {
+            chosenDeviceId = logi.deviceId;
+            chosenLabel = logi.label || 'Logi C270 HD WebCam';
+          } else if (videoInputs.length > 0) {
+            // Select the last device (usually external USB webcam)
+            const ext = videoInputs[videoInputs.length - 1];
+            chosenDeviceId = ext.deviceId;
+            chosenLabel = ext.label || 'USB Camera';
+          }
+        } catch (e) {
+          console.warn('[DepthCameraVision] Device enumeration note:', e);
+        }
 
-      const constraints = {
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        },
-        audio: false
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      this.mediaStream = stream;
-      this.videoEl.srcObject = stream;
-      await this.videoEl.play();
-
-      // Retrieve device information
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
-        this.webcamDeviceInfo = videoTrack.label || 'Webcam Stream';
-        this.webcamResolution = {
-          w: settings.width || 640,
-          h: settings.height || 480
+        const constraints = {
+          video: chosenDeviceId
+            ? { deviceId: { exact: chosenDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' },
+          audio: false
         };
-      }
 
-      this.isWebcamActive = true;
-      this.cameraPermissionError = null;
-      return true;
-    } catch (err) {
-      console.warn('[DepthCameraVision] Webcam access error:', err);
-      this.cameraPermissionError = err.message || 'Camera permission denied or camera busy';
-      this.isWebcamActive = false;
-      alert(`Could not access live camera: ${this.cameraPermissionError}\nReverting to Factory Conveyor NIR feed.`);
-      return false;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.mediaStream = stream;
+        this.videoEl.srcObject = stream;
+        await this.videoEl.play();
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+          this.webcamDeviceInfo = videoTrack.label || chosenLabel;
+          this.webcamResolution = {
+            w: settings.width || 1280,
+            h: settings.height || 720
+          };
+        }
+
+        this.isWebcamActive = true;
+        this.cameraPermissionError = null;
+        console.log(`[DepthCameraVision] Connected to live USB Camera: ${this.webcamDeviceInfo}`);
+        return true;
+      } catch (err) {
+        console.warn('[DepthCameraVision] Direct WebRTC busy or blocked, switching to MJPEG direct stream bridge:', err);
+      }
     }
+
+    // 2. Direct HTTP MJPEG Video Bridge Fallback (/api/camera/stream.mjpg)
+    return this.startMjpegStream('/api/camera/stream.mjpg');
+  }
+
+  startMjpegStream(url = '/api/camera/stream.mjpg') {
+    if (!this.mjpegImg) {
+      this.mjpegImg = new Image();
+      this.mjpegImg.crossOrigin = 'anonymous';
+    }
+    this.mjpegImg.src = url;
+    this.isMjpegActive = true;
+    this.isWebcamActive = true;
+    this.webcamDeviceInfo = 'Logi C270 HD WebCam (1280x720 DirectShow)';
+    this.webcamResolution = { w: 1280, h: 720 };
+    this.cameraPermissionError = null;
+
+    // Connect native DOM stream element in camera card viewport
+    const cardImg = document.getElementById('ai-mjpeg-stream');
+    if (cardImg) {
+      cardImg.src = url + '?t=' + Date.now();
+      cardImg.style.display = 'block';
+    }
+
+    this.updateSourceUI();
+    if (this.isTheaterOpen) this.updateTheaterMediaSource();
+    console.log('[DepthCameraVision] Connected via /api/camera/stream.mjpg bridge');
+    return true;
   }
 
   stopWebcam() {
@@ -327,7 +419,16 @@ export class DepthCameraVision {
     if (this.videoEl) {
       this.videoEl.srcObject = null;
     }
+    if (this.mjpegImg) {
+      this.mjpegImg.src = '';
+      this.isMjpegActive = false;
+    }
+    const cardImg = document.getElementById('ai-mjpeg-stream');
+    if (cardImg) {
+      cardImg.style.display = 'none';
+    }
     this.isWebcamActive = false;
+    if (this.isTheaterOpen) this.updateTheaterMediaSource();
   }
 
   setLiveConveyorData(state) {
@@ -435,8 +536,16 @@ export class DepthCameraVision {
     // Laser speckle and scan jitter
     this.scanLinePhase += dt * 8.0;
 
-    // Splice joint cycle (~8.5s per rotation)
+    // Splice joint cycle (~8.5s per rotation, alternating between Joint #1 and Joint #2)
+    const prevSpliceTime = this.spliceCycleTime;
     this.spliceCycleTime = (this.spliceCycleTime + dt) % 8.5;
+    if (this.spliceCycleTime < prevSpliceTime) {
+      this.activeJointId = (this.activeJointId === 1) ? 2 : 1;
+      const spliceLabel = document.getElementById('ai-splice-joint-val');
+      if (spliceLabel) {
+        spliceLabel.textContent = `Joint #${this.activeJointId} · Nominal (99.${this.activeJointId === 1 ? '8' : '9'}%)`;
+      }
+    }
 
     // Process Computer Vision frame buffer
     this.processComputerVision(dt);
@@ -452,9 +561,16 @@ export class DepthCameraVision {
 
     pctx.clearRect(0, 0, pw, ph);
 
-    if (this.cameraSource === 'webcam' && this.isWebcamActive && this.videoEl.readyState >= 2) {
-      // Draw real camera video into processing canvas
-      pctx.drawImage(this.videoEl, 0, 0, pw, ph);
+    if (this.cameraSource === 'webcam') {
+      if (this.isWebcamActive && this.videoEl && this.videoEl.readyState >= 2) {
+        // Draw real camera video into processing canvas
+        pctx.drawImage(this.videoEl, 0, 0, pw, ph);
+      } else if (this.isMjpegActive && this.mjpegImg && this.mjpegImg.complete && this.mjpegImg.naturalWidth > 0) {
+        // Draw live MJPEG stream frame into processing canvas
+        pctx.drawImage(this.mjpegImg, 0, 0, pw, ph);
+      } else {
+        this.renderFactoryConveyorToProc(pctx, pw, ph);
+      }
     } else {
       const gCanvas = document.getElementById('gazebo-cam-canvas');
       if (gCanvas && gCanvas.style.display !== 'none') {
@@ -931,9 +1047,21 @@ export class DepthCameraVision {
   // ===========================================================================
   renderNormalVideoView(ctx, w, h) {
     const gCanvas = document.getElementById('gazebo-cam-canvas');
-    if (this.cameraSource === 'webcam' && this.isWebcamActive && this.videoEl.readyState >= 2) {
-      // Draw live camera feed
-      ctx.drawImage(this.videoEl, 0, 0, w, h);
+    const cardImg = document.getElementById('ai-mjpeg-stream');
+    const isCardImgActive = cardImg && cardImg.style.display !== 'none';
+
+    if (this.cameraSource === 'webcam') {
+      if (this.isWebcamActive && this.videoEl && this.videoEl.readyState >= 2) {
+        // Draw live camera feed from WebRTC
+        ctx.drawImage(this.videoEl, 0, 0, w, h);
+      } else if (isCardImgActive) {
+        // Hardware MJPEG stream is rendering directly underneath via <img>
+        // Canvas remains transparent so video is crisp and 100% visible
+      } else if (this.isMjpegActive && this.mjpegImg && this.mjpegImg.complete && this.mjpegImg.naturalWidth > 0) {
+        try { ctx.drawImage(this.mjpegImg, 0, 0, w, h); } catch(e) {}
+      } else {
+        this.renderFactoryConveyorToProc(ctx, w, h);
+      }
 
       // Subtle dark vignette to emphasize industrial HUD
       const grad = ctx.createRadialGradient(w/2, h/2, w*0.25, w/2, h/2, w*0.65);
@@ -1067,8 +1195,8 @@ export class DepthCameraVision {
 
     if (this.canvas) {
       this.canvas.style.cursor = 'pointer';
-      this.canvas.title = 'Click to open High-Resolution AI Vision Diagnostics Console';
-      this.canvas.addEventListener('click', () => this.openConsoleModal());
+      this.canvas.title = 'Click to open Fullscreen Camera View';
+      this.canvas.addEventListener('click', () => this.openFullscreenTheater());
     }
 
     const expandBtn = document.getElementById('btn-expand-vision');
@@ -1078,6 +1206,320 @@ export class DepthCameraVision {
         this.openConsoleModal();
       });
     }
+  }
+
+  // ===========================================================================
+  // DEDICATED FULLSCREEN CAMERA THEATER CONTROLLER
+  // ===========================================================================
+  setupTheaterModal() {
+    this.theaterModalEl = document.getElementById('camera-fullscreen-modal');
+    if (!this.theaterModalEl) return;
+
+    this.theaterHudCanvas = this.theaterModalEl.querySelector('#theater-hud-canvas');
+    this.theaterHudCtx = this.theaterHudCanvas ? this.theaterHudCanvas.getContext('2d') : null;
+
+    const btnExit = this.theaterModalEl.querySelector('#btn-theater-exit');
+    if (btnExit) btnExit.addEventListener('click', () => this.closeFullscreenTheater());
+
+    const btnReal = this.theaterModalEl.querySelector('#theater-btn-real');
+    const btnVirt = this.theaterModalEl.querySelector('#theater-btn-virtual');
+    if (btnReal) {
+      btnReal.addEventListener('click', async () => {
+        btnReal.classList.add('active');
+        if (btnVirt) btnVirt.classList.remove('active');
+        await this.setCameraSource('webcam');
+        this.updateTheaterMediaSource();
+      });
+    }
+    if (btnVirt) {
+      btnVirt.addEventListener('click', () => {
+        btnVirt.classList.add('active');
+        if (btnReal) btnReal.classList.remove('active');
+        this.setCameraSource('factory');
+        this.updateTheaterMediaSource();
+      });
+    }
+
+    const btnYolo = this.theaterModalEl.querySelector('#theater-btn-yolo');
+    const btnTherm = this.theaterModalEl.querySelector('#theater-btn-thermal');
+    if (btnYolo) {
+      btnYolo.addEventListener('click', () => {
+        btnYolo.classList.add('active');
+        if (btnTherm) btnTherm.classList.remove('active');
+        this.setFilterMode('yolo');
+      });
+    }
+    if (btnTherm) {
+      btnTherm.addEventListener('click', () => {
+        btnTherm.classList.add('active');
+        if (btnYolo) btnYolo.classList.remove('active');
+        this.setFilterMode('thermal');
+      });
+    }
+
+    const btnAspect = this.theaterModalEl.querySelector('#theater-btn-aspect');
+    const stage = this.theaterModalEl.querySelector('#theater-stage');
+    if (btnAspect && stage) {
+      btnAspect.addEventListener('click', () => {
+        const isFill = stage.classList.toggle('fill-mode');
+        btnAspect.textContent = isFill ? 'Fill: Full' : 'Fit: 16:9';
+      });
+    }
+
+    const btnSnap = this.theaterModalEl.querySelector('#theater-btn-snapshot');
+    if (btnSnap) {
+      btnSnap.addEventListener('click', () => this.captureSnapshot());
+    }
+
+    window.addEventListener('resize', () => {
+      if (this.isTheaterOpen) this.resizeTheaterCanvas();
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && this.isTheaterOpen) {
+        this.closeFullscreenTheater(false);
+      }
+    });
+  }
+
+  openFullscreenTheater() {
+    this.setupTheaterModal();
+    if (!this.theaterModalEl) return;
+
+    this.isTheaterOpen = true;
+    this.theaterModalEl.style.display = 'flex';
+    this.updateTheaterMediaSource();
+    this.resizeTheaterCanvas();
+
+    try {
+      if (this.theaterModalEl.requestFullscreen) {
+        this.theaterModalEl.requestFullscreen().catch(() => {});
+      } else if (this.theaterModalEl.webkitRequestFullscreen) {
+        this.theaterModalEl.webkitRequestFullscreen();
+      }
+    } catch (e) {}
+
+    this.startTheaterLoop();
+  }
+
+  closeFullscreenTheater(exitNative = true) {
+    this.isTheaterOpen = false;
+    if (this.theaterModalEl) {
+      this.theaterModalEl.style.display = 'none';
+    }
+
+    if (exitNative && document.fullscreenElement) {
+      try {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (e) {}
+    }
+  }
+
+  toggleFullscreenTheater() {
+    if (this.isTheaterOpen) this.closeFullscreenTheater();
+    else this.openFullscreenTheater();
+  }
+
+  resizeTheaterCanvas() {
+    if (!this.theaterHudCanvas || !this.theaterModalEl) return;
+    const stage = this.theaterModalEl.querySelector('#theater-stage');
+    if (stage) {
+      const rect = stage.getBoundingClientRect();
+      this.theaterHudCanvas.width = rect.width;
+      this.theaterHudCanvas.height = rect.height;
+    }
+  }
+
+  updateTheaterMediaSource() {
+    if (!this.theaterModalEl) return;
+    const imgEl = this.theaterModalEl.querySelector('#theater-stream-img');
+    const vidEl = this.theaterModalEl.querySelector('#theater-stream-video');
+    const titleEl = this.theaterModalEl.querySelector('#theater-cam-title');
+    const statusText = this.theaterModalEl.querySelector('#theater-status-text');
+
+    if (this.cameraSource === 'webcam') {
+      if (titleEl) titleEl.textContent = this.webcamDeviceInfo || 'Logi C270 HD WebCam (1280x720)';
+      if (statusText) statusText.textContent = 'LIVE CAMERA STREAM';
+      if (this.isWebcamActive && this.videoEl && this.videoEl.srcObject) {
+        if (imgEl) imgEl.style.display = 'none';
+        if (vidEl) {
+          vidEl.style.display = 'block';
+          vidEl.srcObject = this.videoEl.srcObject;
+        }
+      } else {
+        if (vidEl) vidEl.style.display = 'none';
+        if (imgEl) {
+          imgEl.style.display = 'block';
+          imgEl.src = '/api/camera/stream.mjpg?t=' + Date.now();
+        }
+      }
+    } else {
+      if (titleEl) titleEl.textContent = 'VIRTUAL NIR CONVEYOR SCANNER (ROS /conveyor/camera/image_raw)';
+      if (statusText) statusText.textContent = 'VIRTUAL OPTICAL FEED';
+      if (vidEl) vidEl.style.display = 'none';
+      if (imgEl) imgEl.style.display = 'none';
+    }
+  }
+
+  startTheaterLoop() {
+    const renderHUD = () => {
+      if (!this.isTheaterOpen) return;
+
+      // Update Header stats
+      const timeVal = this.theaterModalEl?.querySelector('#theater-time-val');
+      if (timeVal) {
+        const d = new Date();
+        timeVal.textContent = d.toTimeString().split(' ')[0] + '.' + String(d.getMilliseconds()).padStart(3, '0');
+      }
+
+      const fpsVal = this.theaterModalEl?.querySelector('#theater-fps-val');
+      if (fpsVal) fpsVal.textContent = this.fps || 30;
+
+      const riskVal = this.theaterModalEl?.querySelector('#theater-risk-val');
+      if (riskVal) {
+        riskVal.textContent = `${(this.ruptureRisk * 100).toFixed(2)}%`;
+        riskVal.style.color = this.ruptureRisk > 0.3 ? '#ef4444' : this.ruptureRisk > 0.1 ? '#f59e0b' : '#00e676';
+      }
+
+      // Draw HUD overlays on canvas
+      if (this.theaterHudCtx && this.theaterHudCanvas) {
+        const ctx = this.theaterHudCtx;
+        const w = this.theaterHudCanvas.width;
+        const h = this.theaterHudCanvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // If in virtual mode or thermal mode, render the scene to the theater canvas
+        if (this.cameraSource === 'factory') {
+          this.renderFactoryConveyorToProc(ctx, w, h);
+        } else if (this.filterMode === 'thermal') {
+          this.renderThermalLUTView(ctx, w, h);
+        }
+
+        // Draw HUD reticles & calibration brackets
+        if (this.filterMode === 'yolo') {
+          const cx = w / 2;
+          const cy = h / 2;
+
+          // Crosshairs
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(cx - 18, cy); ctx.lineTo(cx - 6, cy);
+          ctx.moveTo(cx + 6, cy); ctx.lineTo(cx + 18, cy);
+          ctx.moveTo(cx, cy - 18); ctx.lineTo(cx, cy - 6);
+          ctx.moveTo(cx, cy + 6); ctx.lineTo(cx, cy + 18);
+          ctx.stroke();
+
+          // Circular reticle
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.25)';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 32, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Corner optical brackets
+          const pad = 36;
+          const len = 24;
+          ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          // Top-left
+          ctx.moveTo(pad, pad + len); ctx.lineTo(pad, pad); ctx.lineTo(pad + len, pad);
+          // Top-right
+          ctx.moveTo(w - pad - len, pad); ctx.lineTo(w - pad, pad); ctx.lineTo(w - pad, pad + len);
+          // Bottom-left
+          ctx.moveTo(pad, h - pad - len); ctx.lineTo(pad, h - pad); ctx.lineTo(pad + len, h - pad);
+          // Bottom-right
+          ctx.moveTo(w - pad - len, h - pad); ctx.lineTo(w - pad, h - pad); ctx.lineTo(w - pad, h - pad - len);
+          ctx.stroke();
+
+          // YOLO Machine Vision Bounding Box
+          const bw = Math.floor(w * 0.52);
+          const bh = Math.floor(h * 0.42);
+          const bx = Math.floor((w - bw) / 2);
+          const by = Math.floor((h - bh) / 2);
+
+          const isAnomaly = this.damageCount > 0 || this.ruptureRisk > 0.15;
+          const boxColor = isAnomaly ? '#f59e0b' : '#00e676';
+
+          ctx.strokeStyle = boxColor;
+          ctx.lineWidth = 2;
+          const bCorner = 18;
+
+          ctx.beginPath();
+          // Top-left
+          ctx.moveTo(bx, by + bCorner); ctx.lineTo(bx, by); ctx.lineTo(bx + bCorner, by);
+          // Top-right
+          ctx.moveTo(bx + bw - bCorner, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + bCorner);
+          // Bottom-left
+          ctx.moveTo(bx, by + bh - bCorner); ctx.lineTo(bx, by + bh); ctx.lineTo(bx + bCorner, by + bh);
+          // Bottom-right
+          ctx.moveTo(bx + bw - bCorner, by + bh); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw, by + bh - bCorner);
+          ctx.stroke();
+
+          // Box label
+          ctx.fillStyle = isAnomaly ? 'rgba(245, 158, 11, 0.9)' : 'rgba(0, 230, 118, 0.85)';
+          ctx.fillRect(bx, by - 24, 210, 22);
+          ctx.fillStyle = '#040810';
+          ctx.font = 'bold 11px "JetBrains Mono", monospace';
+          const label = isAnomaly ? `ANOMALY DETECTED [${(this.ruptureRisk * 100).toFixed(1)}%]` : `NOMINAL BELT SURFACE [99.4%]`;
+          ctx.fillText(label, bx + 8, by - 9);
+        }
+      }
+
+      requestAnimationFrame(renderHUD);
+    };
+
+    requestAnimationFrame(renderHUD);
+  }
+
+  captureSnapshot() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `SmartBelt_Camera_Snapshot_${timestamp}.jpg`;
+
+    fetch('/api/camera/snapshot.jpg')
+      .then(res => {
+        if (!res.ok) throw new Error('Snapshot endpoint unavailable');
+        return res.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => {
+        // Direct canvas capture fallback
+        const a = document.createElement('a');
+        a.href = this.procCanvas.toDataURL('image/jpeg', 0.92);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+  }
+
+  async autoConnectCamera() {
+    try {
+      const res = await fetch('/api/camera/status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.camera && (data.camera.connected || data.camera.stream_url)) {
+          if (data.camera.name) this.webcamDeviceInfo = data.camera.name;
+          console.log('[DepthCameraVision] Auto-detected camera on server:', this.webcamDeviceInfo);
+          await this.setCameraSource('webcam');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('[DepthCameraVision] Auto-connect query note:', e);
+    }
+    return false;
   }
 
   openConsoleModal() {
@@ -1248,25 +1690,25 @@ export class DepthCameraVision {
                     <tr>
                       <td style="color: #cbd5e1;">T-0s</td>
                       <td style="color: #f8fafc;">${srcIsWebcam ? 'Tracked Profile #01' : 'Belt Carcass'}</td>
-                      <td style="color: #10b981;">-0.04 mm</td>
+                      <td style="color: #10b981;">-0.03 mm</td>
                       <td>800.0 mm</td>
-                      <td style="color: #f8fafc;">22.77 mm</td>
+                      <td style="color: #f8fafc;">22.81 mm</td>
                       <td><span class="badge-status-norm">OK</span></td>
                     </tr>
                     <tr>
                       <td style="color: #64748b;">T-8.5s</td>
-                      <td>Splice Joint #40</td>
-                      <td style="color: #10b981;">-0.12 mm</td>
+                      <td>Splice Joint #2 (Nominal)</td>
+                      <td style="color: #10b981;">-0.03 mm</td>
                       <td>800 mm</td>
-                      <td>22.69 mm</td>
+                      <td>22.79 mm</td>
                       <td><span class="badge-status-norm">OK</span></td>
                     </tr>
                     <tr>
                       <td style="color: #64748b;">T-17s</td>
-                      <td>Splice Joint #39</td>
-                      <td style="color: #10b981;">-0.18 mm</td>
+                      <td>Splice Joint #1 (Nominal)</td>
+                      <td style="color: #10b981;">-0.04 mm</td>
                       <td>800 mm</td>
-                      <td>22.63 mm</td>
+                      <td>22.78 mm</td>
                       <td><span class="badge-status-norm">OK</span></td>
                     </tr>
                   </tbody>

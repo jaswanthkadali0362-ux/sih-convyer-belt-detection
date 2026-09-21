@@ -36,7 +36,7 @@ export class ConveyorScene {
     this.laserScanOffset = 0;
 
     // Kinematics state
-    this.beltSpeed = 2.96; // m/s
+    this.beltSpeed = 0.85; // m/s
     this.isSpinning = true;
     this.industrialCrew = null;
     this.coalStream = null;

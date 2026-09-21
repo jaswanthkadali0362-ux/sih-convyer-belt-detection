@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Wireless Mic Voice Studio & Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0d14;
+      --panel-bg: rgba(16, 22, 36, 0.75);
+      --border-color: rgba(64, 120, 255, 0.15);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-green: #00ff87;
+      --accent-red: #ff3366;
+      --accent-amber: #ffaa00;
+      --text-main: #f0f4fc;
+      --text-muted: #8899b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top right, #111e38 0%, var(--bg-dark) 60%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 10px 0 15px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 99px;
+      background: rgba(0, 242, 254, 0.1);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      color: var(--accent-cyan);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffffff 30%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-top: 6px;
+    }
+
+    /* Glass Panels */
+    .card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    /* Device Selector Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .select-wrapper {
+      flex: 1;
+      min-width: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    select, button {
+      font-family: inherit;
+    }
+
+    select {
+      width: 100%;
+      background: #0d1322;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    select:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+    }
+
+    .gain-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 180px;
+    }
+
+    .gain-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .gain-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      min-width: 38px;
+    }
+
+    /* Visualizer Section */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      background: #080b12;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .canvas-overlay-grid {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+    }
+
+    /* Volume Level / VU Meter */
+    .vu-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .vu-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .vu-header .db-readout {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .vu-bar-bg {
+      width: 100%;
+      height: 14px;
+      background: #0c111e;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    .vu-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-green) 0%, var(--accent-amber) 70%, var(--accent-red) 95%);
+      transition: width 0.06s ease-out;
+      border-radius: 7px;
+      box-shadow: 0 0 12px rgba(0, 255, 135, 0.4);
+    }
+
+    /* Record Controls */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 0;
+    }
+
+    .btn {
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-record {
+      background: linear-gradient(135deg, #ff3366, #ff0844);
+      color: white;
+    }
+
+    .btn-record:hover {
+      box-shadow: 0 0 25px rgba(255, 51, 102, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .btn-stop {
+      background: #252e42;
+      color: #ff5e7e;
+      border: 1px solid rgba(255, 94, 126, 0.3);
+      display: none;
+    }
+
+    .btn-stop:hover {
+      background: #2e3952;
+      box-shadow: 0 0 20px rgba(255, 94, 126, 0.4);
+    }
+
+    .timer-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .recording-active .btn-record {
+      display: none;
+    }
+
+    .recording-active .btn-stop {
+      display: inline-flex;
+    }
+
+    .recording-active .timer-display {
+      color: var(--accent-red);
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Playback Station */
+    .playback-card {
+      margin-top: 6px;
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .playback-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    audio {
+      width: 100%;
+      height: 48px;
+      border-radius: 12px;
+      filter: invert(0.88) hue-rotate(180deg);
+      outline: none;
+    }
+
+    .action-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 10px 18px;
+      font-size: 0.9rem;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Diagnostics Banner */
+    .status-box {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #556688;
+    }
+
+    .status-indicator.live {
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">
+        <span class="badge-dot"></span> Real-Time Audio Diagnostic Studio
+      </div>
+      <h1>ESP32 Wireless Mic Voice Test</h1>
+      <p class="subtitle">Test your INMP441 MEMS microphone live with waveform oscilloscope, VU meter, and instant playback.</p>
+    </header>
+
+    <!-- Controls & Source Selection -->
+    <div class="card">
+      <div class="toolbar">
+        <div class="select-wrapper">
+          <label for="micSelect">Audio Input Device</label>
+          <select id="micSelect">
+            <option value="">(Tap 'Start Live Audio' to grant mic permission)</option>
+          </select>
+        </div>
+
+        <div class="gain-wrapper">
+          <label for="gainRange">Digital Mic Boost</label>
+          <div class="gain-slider-row">
+            <input type="range" id="gainRange" min="1" max="10" step="0.5" value="2">
+            <span class="gain-value" id="gainText">2.0x</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Oscilloscope Canvas -->
+      <div class="canvas-container">
+        <canvas id="scopeCanvas"></canvas>
+        <div class="canvas-overlay-grid"></div>
+      </div>
+
+      <!-- VU Level Meter -->
+      <div class="vu-section">
+        <div class="vu-header">
+          <span>INPUT LEVEL</span>
+          <span class="db-readout" id="dbText">-∞ dB</span>
+        </div>
+        <div class="vu-bar-bg">
+          <div class="vu-bar-fill" id="vuFill"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="controls-row" id="controlRow">
+        <button class="btn btn-record" id="btnLiveStart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+          <span id="recordBtnLabel">Start Live Audio & Record</span>
+        </button>
+
+        <button class="btn btn-stop" id="btnStopRecord">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+          </svg>
+          <span>Stop & Review Recording</span>
+        </button>
+
+        <div class="timer-display" id="recordTimer">00:00</div>
+      </div>
+
+      <div class="status-box">
+        <div class="status-indicator" id="statusDot"></div>
+        <span id="statusText">Microphone idle. Select device and tap "Start Live Audio".</span>
+      </div>
+    </div>
+
+    <!-- Playback Section -->
+    <div class="card playback-card" id="playbackCard">
+      <h3>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Recorded Voice Playback
+      </h3>
+      <audio id="audioPlayer" controls></audio>
+      <div class="action-links">
+        <a id="downloadBtn" class="btn btn-secondary" download="mic_test_recording.webm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Recording
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Web Audio State
+    let audioCtx = null;
+    let micStream = null;
+    let micSource = null;
+    let gainNode = null;
+    let analyser = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let timerInterval = null;
+    let recordStartTime = 0;
+    let animationFrameId = null;
+
+    // DOM Elements
+    const micSelect = document.getElementById('micSelect');
+    const gainRange = document.getElementById('gainRange');
+    const gainText = document.getElementById('gainText');
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+    const vuFill = document.getElementById('vuFill');
+    const dbText = document.getElementById('dbText');
+    const btnLiveStart = document.getElementById('btnLiveStart');
+    const btnStopRecord = document.getElementById('btnStopRecord');
+    const controlRow = document.getElementById('controlRow');
+    const recordTimer = document.getElementById('recordTimer');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const playbackCard = document.getElementById('playbackCard');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // Canvas sizing
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth * window.devicePixelRatio;
+      canvas.height = canvas.parentElement.clientHeight * window.devicePixelRatio;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Gain Control
+    gainRange.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      gainText.textContent = val.toFixed(1) + 'x';
+      if (gainNode) {
+        gainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+      }
+    });
+
+    // Populate Audio Inputs
+    async function populateDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        
+        micSelect.innerHTML = '';
+        audioInputs.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.deviceId;
+          opt.textContent = dev.label || `Microphone ${idx + 1}`;
+          if (dev.label.toLowerCase().includes('wireless') || dev.label.toLowerCase().includes('hands-free') || dev.label.toLowerCase().includes('bluetooth')) {
+            opt.selected = true;
+          }
+          micSelect.appendChild(opt);
+        });
+
+        if (audioInputs.length === 0) {
+          micSelect.innerHTML = '<option value="">No audio input detected</option>';
+        }
+      } catch (err) {
+        console.error('Error fetching devices', err);
+      }
+    }
+
+    // Start Audio Processing
+    async function startAudio(deviceId = null) {
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+      }
+      if (audioCtx && audioCtx.state !== 'closed') {
+        await audioCtx.close();
+      }
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      const constraints = {
+        audio: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      };
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia(constraints);
+        await populateDevices();
+
+        micSource = audioCtx.createMediaStreamSource(micStream);
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = parseFloat(gainRange.value);
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.8;
+
+        micSource.connect(gainNode);
+        gainNode.connect(analyser);
+
+        statusDot.classList.add('live');
+        statusText.textContent = "Listening live to: " + (micSelect.options[micSelect.selectedIndex]?.text || "Selected Device");
+
+        drawVisualizer();
+        return true;
+      } catch (err) {
+        statusText.textContent = "Error accessing mic: " + err.message;
+        console.error(err);
+        return false;
+      }
+    }
+
+    micSelect.addEventListener('change', async () => {
+      if (micSelect.value) {
+        await startAudio(micSelect.value);
+      }
+    });
+
+    // Drawing Realtime Waveform & VU Meter
+    function drawVisualizer() {
+      if (!analyser) return;
+
+      const bufferLength = analyser.fftSize;
+      const dataArray = new Uint8Array(bufferLength);
+      analyser.getByteTimeDomainData(dataArray);
+
+      // Render Oscilloscope
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2.5 * window.devicePixelRatio;
+      
+      // Gradient line
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      grad.addColorStop(0, '#00f2fe');
+      grad.addColorStop(0.5, '#00ff87');
+      grad.addColorStop(1, '#4facfe');
+      ctx.strokeStyle = grad;
+
+      ctx.beginPath();
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+      let sumSquares = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0; // 0.0 - 2.0 (center 1.0)
+        const sample = v - 1.0;
+        sumSquares += sample * sample;
+
+        const y = (v * canvas.height) / 2;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+
+      // Compute RMS & dB
+      const rms = Math.sqrt(sumSquares / bufferLength);
+      const db = 20 * Math.log10(Math.max(rms, 0.0001));
+      
+      // Volume fill percentage (-50dB to 0dB range)
+      let percent = Math.min(Math.max((db + 50) * 2, 0), 100);
+      vuFill.style.width = percent.toFixed(1) + '%';
+      
+      if (percent > 0) {
+        dbText.textContent = db.toFixed(1) + ' dBFS';
+      } else {
+        dbText.textContent = '-∞ dB';
+      }
+
+      animationFrameId = requestAnimationFrame(drawVisualizer);
+    }
+
+    // Recording Logic
+    btnLiveStart.addEventListener('click', async () => {
+      if (!micStream) {
+        const ok = await startAudio(micSelect.value || null);
+        if (!ok) return;
+      }
+
+      // Start recording
+      recordedChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/ogg';
+      mediaRecorder = new MediaRecorder(micStream, { mimeType });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+        const audioURL = URL.createObjectURL(blob);
+        audioPlayer.src = audioURL;
+        downloadBtn.href = audioURL;
+        downloadBtn.download = `esp32_mic_recording_${Date.now()}.webm`;
+        playbackCard.style.display = 'block';
+        playbackCard.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      mediaRecorder.start(100);
+      isRecording = true;
+      controlRow.classList.add('recording-active');
+
+      recordStartTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        recordTimer.textContent = `${mins}:${secs}`;
+      }, 500);
+
+      statusText.textContent = "● Recording audio from INMP441 mic... Speak now!";
+    });
+
+    btnStopRecord.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      isRecording = false;
+      clearInterval(timerInterval);
+      controlRow.classList.remove('recording-active');
+      statusText.textContent = "Recording stopped. Listen to the playback below!";
+    });
+
+    // Auto-query devices on load
+    navigator.mediaDevices?.addEventListener('devicechange', populateDevices);
+    populateDevices();
+  </script>
+</body>
+</html>

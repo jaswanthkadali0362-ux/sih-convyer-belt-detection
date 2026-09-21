@@ -19,7 +19,7 @@ export class SettingsModal {
     this.thresholds = {
       misalignment_st01: { name: 'Misalignment ST01 (Return)', unit: 'mm', warn: 45.0, crit: 50.0, min: 20.0, max: 80.0, step: 0.5 },
       misalignment_st02: { name: 'Misalignment ST02 (Carrying)', unit: 'mm', warn: 65.0, crit: 71.2, min: 30.0, max: 100.0, step: 0.5 },
-      load_sensor_st01:  { name: 'Load Sensor ST01 (Frame Joint Stress)', unit: 'kg', warn: 45.0, crit: 55.0, min: 0.0, max: 100.0, step: 0.5, direction: 'max' },
+      load_sensor_st01:  { name: 'Load ST01 (Frame Joint Stress)', unit: 'kg', warn: 45.0, crit: 55.0, min: 0.0, max: 100.0, step: 0.5, direction: 'max' },
       thickness_st01:    { name: 'Belt Thickness ST01 (Cover)', unit: 'mm', warn: 18.0, crit: 15.0, min: 5.0, max: 30.0, step: 0.1, direction: 'min' },
       speed_mid_02:      { name: 'Mid Idler Tachometer', unit: 'm/s', warn: 2.2, crit: 1.8, min: 0.5, max: 5.0, step: 0.1 },
       speed_head_drive:  { name: 'Head Drive Velocity', unit: 'm/s', warn: 3.4, crit: 3.8, min: 1.0, max: 6.0, step: 0.1 },
@@ -39,18 +39,18 @@ export class SettingsModal {
       rtspUrl: 'rtsp://192.168.1.100:554/live/ch0',
       gigeIp: '192.168.0.10',
       gigePort: 24691,
-      selectedCameraId: 'cam_0',
-      resolution: '1920x1080',
-      fpsLimit: 60,
+      selectedCameraId: 'cam_logi',
+      resolution: '1280x720',
+      fpsLimit: 30,
       exposureUs: 450,
       laserTrigger: 'continuous'
     };
 
     // Microcontroller USB Serial COM Ports Configuration
     this.usbPorts = [
-      { id: 'com3', port: 'COM3', device: 'STM32F407 High-Speed DAQ (16-Ch ADC)', baud: 115200, parity: '8-N-1', connected: true, rxCount: 14205, txCount: 840 },
-      { id: 'com4', port: 'COM4', device: 'ESP32-S3 Wireless Idler Gateway (2.4GHz Mesh)', baud: 921600, parity: '8-N-1', connected: true, rxCount: 95400, txCount: 120 },
-      { id: 'com7', port: 'COM7', device: 'RS485 Modbus RTU / Keyence LJ Optical Head', baud: 9600, parity: '8-E-1', connected: false, rxCount: 0, txCount: 0 },
+      { id: 'com19', port: 'COM19', device: 'ESP32 SmartBelt Telemetry Controller (Silicon Labs CP210x)', baud: 115200, parity: '8-N-1', connected: true, rxCount: 3840, txCount: 120 },
+      { id: 'com23', port: 'COM23', device: 'Arduino Uno Conveyor Belt Speedometer & Tracker', baud: 9600, parity: '8-N-1', connected: false, rxCount: 0, txCount: 0 },
+      { id: 'com21', port: 'COM21', device: 'ESP32 Weigh Station Scale (HX711 24-bit ADC)', baud: 115200, parity: '8-N-1', connected: false, rxCount: 0, txCount: 0 },
       { id: 'com1', port: 'COM1', device: 'Industrial PLC Auxiliary Telemetry Link', baud: 38400, parity: '8-N-1', connected: false, rxCount: 0, txCount: 0 }
     ];
 
@@ -96,9 +96,9 @@ export class SettingsModal {
           <!-- Modal Header -->
           <div class="modal-header">
             <div>
-              <span class="modal-kicker">ORE SENTINELS CONFIGURATION</span>
+              <span class="modal-kicker">SCADA SUPERVISORY CONFIGURATION // CV-101</span>
               <h2 class="modal-title" style="margin-top: 2px;">Hardware &amp; System Settings</h2>
-              <p class="modal-subtitle">Configure Ore Sentinels alarm limits, camera stream sources, simulation parameters, and hardware DAQ links.</p>
+              <p class="modal-subtitle">Configure alarm trip thresholds, camera stream sources, simulation parameters, and microcontroller DAQ links.</p>
             </div>
             <button id="btn-close-settings" class="modal-close-btn" title="Close Settings">✕</button>
           </div>
@@ -107,7 +107,7 @@ export class SettingsModal {
           <div class="settings-nav-tabs">
             <button class="settings-tab-btn active" data-tab="thresholds">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-              <span>Sensor Thresholds</span>
+              <span>Alarm Thresholds</span>
             </button>
             <button class="settings-tab-btn" data-tab="camera_ports">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
@@ -380,7 +380,7 @@ export class SettingsModal {
       <div class="settings-section">
         <div class="settings-section-header">
           <div>
-            <h3 class="settings-section-title">Sensor Alarm Limits &amp; Trip Setpoints</h3>
+            <h3 class="settings-section-title">Alarm Limits &amp; Trip Setpoints</h3>
             <p class="settings-section-desc">Adjust warning (Attention) and critical (Emergency Trip) levels. Changes take effect on live 20Hz telemetry instantly.</p>
           </div>
           <div class="settings-preset-group">
@@ -566,8 +566,9 @@ export class SettingsModal {
             <div class="form-field-row">
               <label class="form-field-label">USB Camera Device Index:</label>
               <select id="cfg-camera-dev" class="settings-select-input">
+                <option value="cam_logi" ${this.cameraConfig.selectedCameraId === 'cam_logi' ? 'selected' : ''}>[Primary USB] Logi C270 HD WebCam (1280x720 • 046d:0825)</option>
                 <option value="cam_0" ${this.cameraConfig.selectedCameraId === 'cam_0' ? 'selected' : ''}>[Device 0] Integrated USB HD WebCam (04f2:b6d9)</option>
-                <option value="cam_1" ${this.cameraConfig.selectedCameraId === 'cam_1' ? 'selected' : ''}>[Device 1] Keyence Line-Scan 4K NIR Sensor (05a3:9230)</option>
+                <option value="cam_1" ${this.cameraConfig.selectedCameraId === 'cam_1' ? 'selected' : ''}>[Device 1] Keyence Line-Scan 4K NIR (05a3:9230)</option>
                 <option value="cam_2" ${this.cameraConfig.selectedCameraId === 'cam_2' ? 'selected' : ''}>[Device 2] Intel RealSense D435 Depth Camera (8086:0b07)</option>
               </select>
             </div>
@@ -773,32 +774,28 @@ export class SettingsModal {
 
 
   // ---------------------------------------------------------------------------
-  // SERIAL PACKET MONITOR SIMULATOR
+  // SERIAL PACKET MONITOR (FETCHES REAL COM19 LOGS FROM BACKEND)
   // ---------------------------------------------------------------------------
   startPacketSimulation() {
     this.stopPacketSimulation();
     this.packetStreamInterval = setInterval(() => {
       if (!this.isOpen || this.activeTab !== 'usb_ports') return;
 
-      const t = new Date().toISOString().split('T')[1].slice(0, 12);
-      const randMis = (48.0 + Math.random() * 4).toFixed(1);
-      const randThk = (22.8 + Math.random() * 0.1).toFixed(2);
-      const randCur = (18.2 + Math.random() * 0.5).toFixed(1);
-      const randSpd = (2.96 + (Math.random() - 0.5) * 0.04).toFixed(2);
-
-      const packet = `[${t}] [COM3] $BELT_DAQ,ST01_MIS=${randMis},THK=${randThk},SPD=${randSpd},CUR=${randCur}*OK`;
-      this.packetLogs.push(packet);
-      if (this.packetLogs.length > 50) this.packetLogs.shift();
-
-      // Update port stats
-      const com3 = this.usbPorts.find(p => p.id === 'com3');
-      if (com3 && com3.connected) {
-        com3.rxCount += 1;
-        const rxEl = this.container.querySelector('#rx-stat-com3');
-        if (rxEl) rxEl.textContent = `${com3.rxCount.toLocaleString()} RX`;
-      }
-
-      this.updateSerialTerminalDOM();
+      fetch('/api/serial/log')
+        .then(r => r.json())
+        .then(d => {
+          if (d.logs && d.logs.length > 0) {
+            this.packetLogs = d.logs.map(l => `[${l.time}] [COM19] [${l.direction || 'RX'}] ${l.text}`);
+            const com19 = this.usbPorts.find(p => p.id === 'com19');
+            if (com19) {
+              com19.rxCount = d.logs.length;
+              const rxEl = this.container.querySelector('#rx-stat-com19');
+              if (rxEl) rxEl.textContent = `${com19.rxCount.toLocaleString()} RX`;
+            }
+            this.updateSerialTerminalDOM();
+          }
+        })
+        .catch(() => {});
     }, 450);
   }
 

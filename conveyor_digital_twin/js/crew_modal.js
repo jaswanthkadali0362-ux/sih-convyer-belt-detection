@@ -47,13 +47,13 @@ export class CrewModal {
     }
     // Fallback nominal telemetry
     const fallbacks = {
-      'load_sensor_st01': { tag: 'Load Sensor ST01', val: 0.0, unit: 'kg', status: 'normal', description: 'Frame Joint Stress Load Cell' },
-      'misalignment_st02': { tag: 'Misalignment ST02', val: 72.33, unit: 'mm', status: 'warning', description: 'Carrying Strand Optical Tracking' },
-      'speed_head_drive': { tag: 'Head Drive Speed', val: 3.08, unit: 'm/s', status: 'normal', description: 'Main Drive Motor Tachometer' },
-      'speed_mid_02': { tag: 'Speed Sensor 02', val: 2.96, unit: 'm/s', status: 'normal', description: 'Carrying Strand Linear Speed' },
-      'misalignment_st01': { tag: 'Misalignment ST01', val: 32.40, unit: 'mm', status: 'normal', description: 'Return Strand Lateral Drift' }
+      'load_sensor_st01': { tag: 'Load ST01', val: 0.09, unit: 'kg', status: 'normal', description: 'Frame Joint Stress Load Cell' },
+      'misalignment_st02': { tag: 'Misalignment ST02', val: 4.30, unit: 'mm', status: 'normal', description: 'Carrying Strand Optical Tracking' },
+      'speed_head_drive': { tag: 'Head Drive Speed', val: 0.88, unit: 'm/s', status: 'normal', description: 'Main Drive Motor Tachometer' },
+      'speed_mid_02': { tag: 'Speed 02', val: 0.85, unit: 'm/s', status: 'normal', description: 'Carrying Strand Linear Speed' },
+      'misalignment_st01': { tag: 'Misalignment ST01', val: 2.80, unit: 'mm', status: 'normal', description: 'Return Strand Lateral Drift' }
     };
-    return fallbacks[sensorKey] || { tag: 'Station Sensor', val: 0.0, unit: '--', status: 'normal', description: 'Nominal Condition' };
+    return fallbacks[sensorKey] || { tag: 'Station', val: 0.0, unit: '--', status: 'normal', description: 'Nominal Condition' };
   }
 
   render() {
@@ -438,10 +438,10 @@ export class CrewModal {
         const result = this.crew.triggerDiagnosticScan(wid);
         if (result) {
           const msgs = [
-            'Optical alignment verified ±0.4mm. Laser sensor sweep complete.',
+            'Optical alignment verified ±0.4mm. Laser sweep complete.',
             'Telemetry calibrated. No micro-slip or vibration anomalies detected.',
             'Thermal envelope normal (45.5°C). Bearing lubrication optimal.',
-            'Frame strain gauge balanced at 0.0 kg load. Zero structural deflection.'
+            'Frame strain gauge balanced at 0.09 kg load. Zero structural deflection.'
           ];
           const chosen = msgs[Math.floor(Math.random() * msgs.length)];
           this.lastScanResults[wid] = { message: chosen, time: Date.now() };
@@ -458,7 +458,7 @@ export class CrewModal {
         industrialAudio.playRadioChirp();
         const worker = this.crew.getWorkerById(this.selectedWorkerId);
         const name = worker ? worker.cfg.name : 'Operator';
-        const msg = `📻 [RADIO] ${name}: All sensors nominal on station. Proceeding with routine patrol.`;
+        const msg = `📻 [RADIO] ${name}: All telemetry nominal on station. Proceeding with routine patrol.`;
         window.dispatchEvent(new CustomEvent('radio-callout', { detail: { message: msg } }));
         alert(msg);
       });

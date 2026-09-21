@@ -31,23 +31,26 @@ export class DailyAnalyticsModal {
   getFallbackData() {
     return {
       total_days: 7,
+      num_joints: 2,
       summary: {
-        cumulative_tonnage: 336500,
-        total_wear_loss_mm: 1.34,
+        cumulative_load: 0.48,
+        cumulative_tonnage: 0.48,
+        total_wear_loss_mm: 0.14,
         current_thickness_mm: 22.81,
         replacement_threshold_mm: 10.0,
-        wear_rate_mm_day: 0.024,
-        projected_days_remaining: 533,
-        active_alarms: 2
+        wear_rate_mm_day: 0.002,
+        projected_days_remaining: 1250,
+        active_alarms: 0,
+        num_joints: 2
       },
       days: [
-        { day_index: 0, date_str: "Monday, Sep 08", relative_label: "Day -6", tonnage: 48200, tonnage_tons: 48200, load_kg: 32.1, load_sensor_st01: 32.1, thickness_st01: 24.15, misalignment_st01: 36.20, misalignment_st02: 58.40, bearing_temp_c: 41.2, temp_bearing_01: 41.2, ai_defects: 0, damage_st01: 0, status: "normal" },
-        { day_index: 1, date_str: "Tuesday, Sep 09", relative_label: "Day -5", tonnage: 51400, tonnage_tons: 51400, load_kg: 34.5, load_sensor_st01: 34.5, thickness_st01: 23.92, misalignment_st01: 38.60, misalignment_st02: 61.10, bearing_temp_c: 42.0, temp_bearing_01: 42.0, ai_defects: 0, damage_st01: 0, status: "normal" },
-        { day_index: 2, date_str: "Wednesday, Sep 10", relative_label: "Day -4", tonnage: 49800, tonnage_tons: 49800, load_kg: 33.8, load_sensor_st01: 33.8, thickness_st01: 23.68, misalignment_st01: 41.50, misalignment_st02: 64.30, bearing_temp_c: 43.1, temp_bearing_01: 43.1, ai_defects: 0, damage_st01: 0, status: "normal" },
-        { day_index: 3, date_str: "Thursday, Sep 11", relative_label: "Day -3", tonnage: 53200, tonnage_tons: 53200, load_kg: 35.2, load_sensor_st01: 35.2, thickness_st01: 23.45, misalignment_st01: 44.80, misalignment_st02: 67.90, bearing_temp_c: 44.5, temp_bearing_01: 44.5, ai_defects: 1, damage_st01: 1, status: "warning" },
-        { day_index: 4, date_str: "Friday, Sep 12", relative_label: "Day -2", tonnage: 52100, tonnage_tons: 52100, load_kg: 34.0, load_sensor_st01: 34.0, thickness_st01: 23.22, misalignment_st01: 47.30, misalignment_st02: 69.80, bearing_temp_c: 45.0, temp_bearing_01: 45.0, ai_defects: 1, damage_st01: 1, status: "warning" },
-        { day_index: 5, date_str: "Saturday, Sep 13", relative_label: "Yesterday", tonnage: 47900, tonnage_tons: 47900, load_kg: 31.5, load_sensor_st01: 31.5, thickness_st01: 22.98, misalignment_st01: 51.10, misalignment_st02: 71.40, bearing_temp_c: 46.8, temp_bearing_01: 46.8, ai_defects: 2, damage_st01: 2, status: "critical" },
-        { day_index: 6, date_str: "Sunday, Sep 14", relative_label: "Today (Live)", tonnage: 33900, tonnage_tons: 33900, load_kg: 35.0, load_sensor_st01: 35.0, thickness_st01: 22.81, misalignment_st01: 52.33, misalignment_st02: 72.33, bearing_temp_c: 47.2, temp_bearing_01: 47.2, ai_defects: 2, damage_st01: 2, status: "critical" }
+        { day_index: 0, date_str: "Monday, Sep 08", relative_label: "Day -6", load_kg: 0.06, load: 0.06, tonnage: 0.06, tonnage_tons: 0.06, load_sensor_st01: 0.06, thickness_st01: 22.95, misalignment_st01: 2.10, misalignment_st02: 3.20, bearing_temp_c: 24.2, temp_bearing_01: 24.2, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 1, date_str: "Tuesday, Sep 09", relative_label: "Day -5", load_kg: 0.07, load: 0.07, tonnage: 0.07, tonnage_tons: 0.07, load_sensor_st01: 0.07, thickness_st01: 22.92, misalignment_st01: 2.30, misalignment_st02: 3.50, bearing_temp_c: 24.8, temp_bearing_01: 24.8, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 2, date_str: "Wednesday, Sep 10", relative_label: "Day -4", load_kg: 0.05, load: 0.05, tonnage: 0.05, tonnage_tons: 0.05, load_sensor_st01: 0.05, thickness_st01: 22.90, misalignment_st01: 2.50, misalignment_st02: 3.80, bearing_temp_c: 25.1, temp_bearing_01: 25.1, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 3, date_str: "Thursday, Sep 11", relative_label: "Day -3", load_kg: 0.08, load: 0.08, tonnage: 0.08, tonnage_tons: 0.08, load_sensor_st01: 0.08, thickness_st01: 22.88, misalignment_st01: 2.70, misalignment_st02: 4.10, bearing_temp_c: 25.5, temp_bearing_01: 25.5, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 4, date_str: "Friday, Sep 12", relative_label: "Day -2", load_kg: 0.06, load: 0.06, tonnage: 0.06, tonnage_tons: 0.06, load_sensor_st01: 0.06, thickness_st01: 22.85, misalignment_st01: 2.90, misalignment_st02: 4.30, bearing_temp_c: 25.9, temp_bearing_01: 25.9, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 5, date_str: "Saturday, Sep 13", relative_label: "Yesterday", load_kg: 0.07, load: 0.07, tonnage: 0.07, tonnage_tons: 0.07, load_sensor_st01: 0.07, thickness_st01: 22.83, misalignment_st01: 3.10, misalignment_st02: 4.60, bearing_temp_c: 26.2, temp_bearing_01: 26.2, ai_defects: 0, damage_st01: 0, status: "normal" },
+        { day_index: 6, date_str: "Sunday, Sep 14", relative_label: "Today (Live)", load_kg: 0.09, load: 0.09, tonnage: 0.09, tonnage_tons: 0.09, load_sensor_st01: 0.09, thickness_st01: 22.81, misalignment_st01: 2.80, misalignment_st02: 4.30, bearing_temp_c: 26.5, temp_bearing_01: 26.5, ai_defects: 0, damage_st01: 0, status: "normal" }
       ]
     };
   }
@@ -73,10 +76,14 @@ export class DailyAnalyticsModal {
 
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-    const cumTonnage = s.cumulative_tonnage !== undefined ? s.cumulative_tonnage.toLocaleString() : '336,500';
-    const wearLoss = s.total_wear_loss_mm !== undefined ? s.total_wear_loss_mm : '1.34';
-    const wearRate = s.wear_rate_mm_day !== undefined ? s.wear_rate_mm_day : '0.024';
-    const usefulDays = s.projected_days_remaining !== undefined ? s.projected_days_remaining : '533';
+    // Calculate exact cumulative load across the 7 days (or from summary)
+    const totalDailySum = days.reduce((acc, d) => acc + Number(d.load_kg !== undefined ? d.load_kg : (d.load !== undefined ? d.load : (d.tonnage_tons !== undefined ? d.tonnage_tons : 0))), 0);
+    const cumLoadVal = (s.cumulative_load !== undefined ? Number(s.cumulative_load) : (totalDailySum > 0 ? totalDailySum : (s.cumulative_tonnage !== undefined ? Number(s.cumulative_tonnage) : 0.48)));
+    const cumLoad = cumLoadVal.toFixed(2);
+    const avgDailyLoad = (days.length > 0 ? (cumLoadVal / days.length) : 0.07).toFixed(2);
+    const wearLoss = s.total_wear_loss_mm !== undefined ? s.total_wear_loss_mm : '0.14';
+    const wearRate = s.wear_rate_mm_day !== undefined ? s.wear_rate_mm_day : '0.002';
+    const usefulDays = s.projected_days_remaining !== undefined ? s.projected_days_remaining : '1250';
 
     this.container.innerHTML = `
       <div class="analytics-modal-backdrop" id="analytics-backdrop">
@@ -85,9 +92,9 @@ export class DailyAnalyticsModal {
           <!-- Modal Header -->
           <div class="modal-header">
             <div class="modal-title-group">
-              <div class="modal-tag">ORE SENTINELS HISTORICAL ARCHIVE // 7-DAY WEAR TELEMETRY</div>
-              <h2>Ore Sentinels 7-Day Conveyor Wear Progression &amp; Rupture Risk Report</h2>
-              <p class="modal-subtitle">Condition Monitoring Dataset: ${days[0]?.date_str || 'Monday, Sep 08'} &mdash; ${days[days.length - 1]?.date_str || 'Sunday, Sep 14'} | Ore Sentinels Archival Engine</p>
+              <div class="modal-tag">CONVEYOR CV-101 // 7-DAY OPERATIONAL AUDIT &amp; WEAR LOG</div>
+              <h2>7-Day Conveyor Wear Progression &amp; Belt Condition Report</h2>
+              <p class="modal-subtitle">Condition Monitoring Period: ${days[0]?.date_str || 'Monday, Sep 08'} &mdash; ${days[days.length - 1]?.date_str || 'Sunday, Sep 14'} &bull; ISO 5048 / DIN 22101 Profilometry</p>
             </div>
             <button id="btn-close-analytics" class="modal-close-btn" aria-label="Close modal">&times;</button>
           </div>
@@ -98,11 +105,11 @@ export class DailyAnalyticsModal {
             <!-- Summary KPI Strip -->
             <div class="modal-kpi-grid">
               <div class="modal-kpi-card highlight-box">
-                <div class="kpi-label">7-DAY CUMULATIVE TONNAGE</div>
+                <div class="kpi-label">7-DAY CUMULATIVE LOAD</div>
                 <div class="kpi-val" style="color: var(--primary-blue); font-family: var(--font-mono); font-weight: 800;">
-                  ${cumTonnage} <span class="kpi-unit" style="font-size: 0.9rem;">TONS</span>
+                  ${cumLoad} <span class="kpi-unit" style="font-size: 0.9rem;">KG</span>
                 </div>
-                <div class="kpi-subtext">Avg 48,071 Tons / 24h operational cycle</div>
+                <div class="kpi-subtext">Avg ${avgDailyLoad} KG / 24h operational cycle</div>
               </div>
 
               <div class="modal-kpi-card">
@@ -118,7 +125,7 @@ export class DailyAnalyticsModal {
                 <div class="kpi-val" style="color: var(--text-dark); font-family: var(--font-mono); font-weight: 800;">
                   ${wearRate} <span class="kpi-unit" style="font-size: 0.9rem;">mm/day</span>
                 </div>
-                <div class="kpi-subtext">Calibrated via Ore Sentinels optical profilometer</div>
+                <div class="kpi-subtext">Calibrated via inline optical profilometer</div>
               </div>
 
               <div class="modal-kpi-card highlight-box">
@@ -184,8 +191,7 @@ export class DailyAnalyticsModal {
                     <tr>
                       <th>Day</th>
                       <th>Date</th>
-                      <th>Tonnage (T)</th>
-                      <th>Load (kg)</th>
+                      <th>Load (KG)</th>
                       <th>Thickness (mm)</th>
                       <th>ST01 Drift (mm)</th>
                       <th>ST02 Drift (mm)</th>
@@ -202,8 +208,7 @@ export class DailyAnalyticsModal {
                                           d.status === 'warning' ? '<span class="badge-status-warn">WARNING</span>' :
                                           '<span class="badge-status-norm">OPTIMAL</span>';
                       
-                      const tonnage = Number(d.tonnage !== undefined ? d.tonnage : (d.tonnage_tons !== undefined ? d.tonnage_tons : 48000));
-                      const load = Number(d.load_kg !== undefined ? d.load_kg : (d.load_sensor_st01 !== undefined ? d.load_sensor_st01 : 32.0));
+                      const loadVal = Number(d.load_kg !== undefined ? d.load_kg : (d.load !== undefined ? d.load : (d.tonnage_tons !== undefined ? d.tonnage_tons : 0.07)));
                       const thickness = Number(d.thickness_st01 !== undefined ? d.thickness_st01 : 22.81);
                       const drift01 = Number(d.misalignment_st01 !== undefined ? d.misalignment_st01 : 36.2);
                       const drift02 = Number(d.misalignment_st02 !== undefined ? d.misalignment_st02 : 58.4);
@@ -214,8 +219,7 @@ export class DailyAnalyticsModal {
                         <tr class="history-row" data-day-index="${i}">
                           <td><strong style="color: var(--text-dark);">${d.relative_label || `Day ${i}`}</strong></td>
                           <td>${d.date_str || ''}</td>
-                          <td><strong style="font-family: var(--font-mono);">${tonnage.toLocaleString()}</strong></td>
-                          <td>${load.toFixed(1)}</td>
+                          <td><strong style="font-family: var(--font-mono);">${loadVal.toFixed(2)} KG</strong></td>
                           <td style="color: ${thickness < 15 ? '#ef4444' : 'var(--primary-blue)'}; font-weight: 700;">${thickness.toFixed(2)}</td>
                           <td style="color: ${drift01 > 45 ? '#ef4444' : 'inherit'}; font-weight: 600;">${drift01.toFixed(1)}</td>
                           <td>${drift02.toFixed(1)}</td>
